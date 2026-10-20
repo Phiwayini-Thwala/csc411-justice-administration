@@ -94,11 +94,11 @@ This project automates one inter-organizational process: a suspect moving from *
 
 | Member | Name | Student number | GitHub profile | Role |
 |---|---|---|---|---|
-| 1 | | | | Process research, diagrams, frontend, report editing |
-| 2 | | | | System design, requirements, OpenAPI contract |
-| 3 | | | | Police service |
-| 4 | | | | Judiciary service |
-| 5 | Phiwayini Thwala | | https://github.com/Phiwayini-Thwala | Correctional service, Postman tests, repository admin, submission |
+| 1 |Motsa | | | Process research, diagrams, frontend, report editing |
+| 2 |Melody Sylvester | | | System design, requirements, OpenAPI contract |
+| 3 |Thandinkosi Magagula | | | Police service |
+| 4 |Sibusiso  | | | Judiciary service |
+| 5 | Phiwayini Thwala |202403175 | https://github.com/Phiwayini-Thwala | Correctional service, Postman tests, repository admin, submission |
 
 ## Documentation
 
