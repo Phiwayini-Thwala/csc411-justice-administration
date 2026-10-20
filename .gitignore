@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# SQLite databases
+   *.db
+   *.sqlite3
+
+   # VS Code settings
+   .vscode/
