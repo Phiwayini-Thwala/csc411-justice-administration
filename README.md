@@ -96,7 +96,7 @@ This project automates one inter-organizational process: a suspect moving from *
 |---|---|---|---|---|
 | 1 |Kwanele Motsa |155307 |https://github.com/kwanelemotsa62-netizen | Process research, diagrams, frontend, report editing |
 | 2 |Melody Sylvester |202303641 | https://github.com/Melody386 | System design, requirements, OpenAPI contract |
-| 3 |Thandinkosi Magagula | | https://github.com| Police service |
+| 3 |Thandinkosi Magagula |20230275 | https://github.com/Thandinkosi-20230275| Police service |
 | 4 |Sibusiso Maseko |202301241 |https://github.com | Judiciary service |
 | 5 | Phiwayini Thwala |202403175 | https://github.com/Phiwayini-Thwala | Correctional service, Postman tests, repository admin, submission |
 
