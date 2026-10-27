@@ -1,0 +1,718 @@
+openapi: 3.0.3
+info:
+  title: Eswatini Justice Administration Integration API
+  version: 1.0.0
+  description: |
+    Shared API contract for the CSC411 mini project (Justice administration).
+    Three independent services, each with its own database:
+      - Police service        (port 8001)
+      - Judiciary service     (port 8002)
+      - Correctional service  (port 8003)
+    All endpoints (except /auth/login) require a JWT in the header
+    `Authorization: Bearer <token>`. The token carries a `role` claim:
+    police_officer | court_officer | correctional_officer | admin.
+    All request and response bodies are JSON (UTF-8). Dates use ISO 8601.
+servers:
+  - url: http://localhost:8001
+    description: Police service
+  - url: http://localhost:8002
+    description: Judiciary service
+  - url: http://localhost:8003
+    description: Correctional service
+tags:
+  - name: Auth
+  - name: Police
+  - name: Judiciary
+  - name: Correctional
+security:
+  - bearerAuth: []
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in and receive a JWT (available on every service)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /audit-logs:
+    get:
+      tags: [Auth]
+      summary: Read the audit trail of a service (admin only; available on every service)
+      responses:
+        '200':
+          description: List of audit entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    time: {type: string, format: date-time}
+                    username: {type: string}
+                    role: {type: string}
+                    action: {type: string, example: CASE_REFERRED}
+                    record_id: {type: string}
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /suspects:
+    servers: [{url: 'http://localhost:8001'}]
+    post:
+      tags: [Police]
+      summary: Register a suspect
+      description: Roles allowed - police_officer, admin.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuspectCreate'
+      responses:
+        '201':
+          description: Suspect registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Suspect'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /suspects/{suspect_id}:
+    servers: [{url: 'http://localhost:8001'}]
+    get:
+      tags: [Police]
+      summary: Get a suspect by ID
+      parameters:
+        - $ref: '#/components/parameters/SuspectId'
+      responses:
+        '200':
+          description: Suspect found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Suspect'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /arrests:
+    servers: [{url: 'http://localhost:8001'}]
+    post:
+      tags: [Police]
+      summary: Record an arrest for a registered suspect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArrestCreate'
+      responses:
+        '201':
+          description: Arrest recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Arrest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /cases:
+    servers: [{url: 'http://localhost:8001'}]
+    post:
+      tags: [Police]
+      summary: Create a police case from an arrest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PoliceCaseCreate'
+      responses:
+        '201':
+          description: Case created (status OPEN)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoliceCase'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /cases/{case_id}:
+    servers: [{url: 'http://localhost:8001'}]
+    get:
+      tags: [Police]
+      summary: Get a police case with its charges
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      responses:
+        '200':
+          description: Case found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoliceCase'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /cases/{case_id}/charges:
+    servers: [{url: 'http://localhost:8001'}]
+    post:
+      tags: [Police]
+      summary: Add a charge to a case
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChargeCreate'
+      responses:
+        '201':
+          description: Charge added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Charge'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /cases/{case_id}/refer:
+    servers: [{url: 'http://localhost:8001'}]
+    post:
+      tags: [Police]
+      summary: Refer the case to court
+      description: |
+        Police service calls POST /court-cases on the Judiciary service
+        (service-to-service, forwarding the JWT). The case must have at least
+        one charge. On success the police case status becomes REFERRED.
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      responses:
+        '200':
+          description: Case referred to court
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoliceCase'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /court-cases:
+    servers: [{url: 'http://localhost:8002'}]
+    post:
+      tags: [Judiciary]
+      summary: Receive a case referred by the Police service
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourtCaseCreate'
+      responses:
+        '201':
+          description: Court case registered (status RECEIVED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourtCase'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /court-cases/{court_case_id}:
+    servers: [{url: 'http://localhost:8002'}]
+    get:
+      tags: [Judiciary]
+      summary: Get a court case with hearings and decisions
+      parameters:
+        - $ref: '#/components/parameters/CourtCaseId'
+      responses:
+        '200':
+          description: Court case found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourtCase'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /court-cases/{court_case_id}/hearings:
+    servers: [{url: 'http://localhost:8002'}]
+    post:
+      tags: [Judiciary]
+      summary: Schedule a hearing
+      parameters:
+        - $ref: '#/components/parameters/CourtCaseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HearingCreate'
+      responses:
+        '201':
+          description: Hearing scheduled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hearing'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /court-cases/{court_case_id}/bail:
+    servers: [{url: 'http://localhost:8002'}]
+    post:
+      tags: [Judiciary]
+      summary: Grant bail (suspect is released on conditions)
+      description: |
+        If the suspect is on remand (inmate_id stored), the Judiciary calls
+        POST /inmates/{inmate_id}/release with reason BAIL_GRANTED. If that call
+        fails, bail is NOT saved and 502 is returned.
+      parameters:
+        - $ref: '#/components/parameters/CourtCaseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BailDecision'
+      responses:
+        '200':
+          description: Bail granted (status ON_BAIL)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourtCase'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+  /court-cases/{court_case_id}/remand:
+    servers: [{url: 'http://localhost:8002'}]
+    post:
+      tags: [Judiciary]
+      summary: Remand suspect in custody
+      description: |
+        Judiciary calls POST /inmates on the Correctional service with
+        admission_type REMAND. If that call fails the remand is NOT saved
+        and 502 is returned.
+      parameters:
+        - $ref: '#/components/parameters/CourtCaseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemandDecision'
+      responses:
+        '200':
+          description: Remanded (status ON_REMAND)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourtCase'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+  /court-cases/{court_case_id}/verdict:
+    servers: [{url: 'http://localhost:8002'}]
+    post:
+      tags: [Judiciary]
+      summary: Record verdict and, if guilty, the sentence
+      description: |
+        Calls made by the Judiciary after the decision (the court case stores
+        the inmate_id returned when the suspect was admitted on remand):
+        - GUILTY + IMPRISONMENT, suspect on remand: PUT /inmates/{inmate_id}/status
+          with status CONVICTED and sentence_months.
+        - GUILTY + IMPRISONMENT, suspect not on remand: POST /inmates with
+          admission_type CONVICTED and sentence_months.
+        - GUILTY + FINE or SUSPENDED: no new admission; if the suspect is on remand,
+          POST /inmates/{inmate_id}/release with reason COURT_ORDER. Case CLOSED.
+        - NOT_GUILTY, suspect on remand: POST /inmates/{inmate_id}/release with
+          reason ACQUITTED. Case CLOSED.
+        If the Correctional call fails, the verdict is NOT saved and 502 is returned.
+      parameters:
+        - $ref: '#/components/parameters/CourtCaseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerdictDecision'
+      responses:
+        '200':
+          description: Verdict recorded (status CLOSED or SENTENCED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourtCase'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /inmates:
+    servers: [{url: 'http://localhost:8003'}]
+    post:
+      tags: [Correctional]
+      summary: Admit an inmate
+      description: Roles allowed - correctional_officer, admin, or court_officer when called by the Judiciary service (remand or sentence).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InmateAdmit'
+      responses:
+        '201':
+          description: Inmate admitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inmate'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /inmates/{inmate_id}:
+    servers: [{url: 'http://localhost:8003'}]
+    get:
+      tags: [Correctional]
+      summary: Get inmate status
+      parameters:
+        - $ref: '#/components/parameters/InmateId'
+      responses:
+        '200':
+          description: Inmate found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inmate'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /inmates/{inmate_id}/status:
+    servers: [{url: 'http://localhost:8003'}]
+    put:
+      tags: [Correctional]
+      summary: Update inmate status (REMAND to CONVICTED after a guilty verdict)
+      description: Roles allowed - correctional_officer, admin, or court_officer when called by the Judiciary service. sentence_months is required when status is CONVICTED.
+      parameters:
+        - $ref: '#/components/parameters/InmateId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InmateStatusUpdate'
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inmate'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /inmates/{inmate_id}/transfer:
+    servers: [{url: 'http://localhost:8003'}]
+    put:
+      tags: [Correctional]
+      summary: Transfer inmate to another facility
+      parameters:
+        - $ref: '#/components/parameters/InmateId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+      responses:
+        '200':
+          description: Inmate transferred
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inmate'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /inmates/{inmate_id}/release:
+    servers: [{url: 'http://localhost:8003'}]
+    post:
+      tags: [Correctional]
+      summary: Release an inmate
+      description: |
+        Roles allowed - correctional_officer, admin, or court_officer when the
+        Judiciary sends a court release order (reason ACQUITTED, BAIL_GRANTED
+        or COURT_ORDER). Correctional officers use SENTENCE_COMPLETED.
+      parameters:
+        - $ref: '#/components/parameters/InmateId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleaseRequest'
+      responses:
+        '200':
+          description: Inmate released
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inmate'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    SuspectId:
+      name: suspect_id
+      in: path
+      required: true
+      schema: {type: string, example: SUS-0001}
+    CaseId:
+      name: case_id
+      in: path
+      required: true
+      schema: {type: string, example: CASE-2026-0001}
+    CourtCaseId:
+      name: court_case_id
+      in: path
+      required: true
+      schema: {type: string, example: CRT-2026-0001}
+    InmateId:
+      name: inmate_id
+      in: path
+      required: true
+      schema: {type: string, example: INM-0001}
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Unauthorized:
+      description: Missing, invalid or expired token
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Forbidden:
+      description: Role not allowed for this operation
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Conflict:
+      description: Operation not allowed in the current state
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    BadGateway:
+      description: A downstream service failed or is unreachable
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+  schemas:
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error: {type: string, example: NOT_FOUND}
+        message: {type: string, example: Suspect SUS-0099 does not exist}
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: {type: string, example: officer1}
+        password: {type: string, example: secret123}
+    TokenResponse:
+      type: object
+      properties:
+        access_token: {type: string}
+        token_type: {type: string, example: bearer}
+        expires_in: {type: integer, example: 3600}
+        role:
+          type: string
+          enum: [police_officer, court_officer, correctional_officer, admin]
+    SuspectCreate:
+      type: object
+      required: [full_name, national_id, date_of_birth]
+      properties:
+        full_name: {type: string, example: Sipho Dlamini}
+        national_id: {type: string, example: '8001015800083'}
+        date_of_birth: {type: string, format: date}
+        gender: {type: string, enum: [male, female, other]}
+        address: {type: string}
+    Suspect:
+      allOf:
+        - $ref: '#/components/schemas/SuspectCreate'
+        - type: object
+          properties:
+            suspect_id: {type: string, example: SUS-0001}
+            created_at: {type: string, format: date-time}
+    ArrestCreate:
+      type: object
+      required: [suspect_id, arrest_date, location, arresting_officer]
+      properties:
+        suspect_id: {type: string}
+        arrest_date: {type: string, format: date-time}
+        location: {type: string, example: Manzini Central}
+        arresting_officer: {type: string}
+    Arrest:
+      allOf:
+        - $ref: '#/components/schemas/ArrestCreate'
+        - type: object
+          properties:
+            arrest_id: {type: string, example: ARR-0001}
+    PoliceCaseCreate:
+      type: object
+      required: [arrest_id, summary]
+      properties:
+        arrest_id: {type: string}
+        summary: {type: string}
+    ChargeCreate:
+      type: object
+      required: [offence, statute]
+      properties:
+        offence: {type: string, example: Theft}
+        statute: {type: string, example: Theft Act section 4}
+        description: {type: string}
+    Charge:
+      allOf:
+        - $ref: '#/components/schemas/ChargeCreate'
+        - type: object
+          properties:
+            charge_id: {type: string, example: CHG-0001}
+    PoliceCase:
+      type: object
+      properties:
+        case_id: {type: string, example: CASE-2026-0001}
+        suspect_id: {type: string}
+        arrest_id: {type: string}
+        summary: {type: string}
+        status: {type: string, enum: [OPEN, REFERRED, CLOSED]}
+        court_case_id: {type: string, nullable: true}
+        charges:
+          type: array
+          items: {$ref: '#/components/schemas/Charge'}
+    CourtCaseCreate:
+      type: object
+      required: [police_case_id, suspect, charges]
+      properties:
+        police_case_id: {type: string}
+        suspect: {$ref: '#/components/schemas/Suspect'}
+        charges:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/Charge'}
+        summary: {type: string}
+    HearingCreate:
+      type: object
+      required: [hearing_date, court_name]
+      properties:
+        hearing_date: {type: string, format: date-time}
+        court_name: {type: string, example: Manzini Magistrate Court}
+        presiding_officer: {type: string}
+    Hearing:
+      allOf:
+        - $ref: '#/components/schemas/HearingCreate'
+        - type: object
+          properties:
+            hearing_id: {type: string, example: HRG-0001}
+    BailDecision:
+      type: object
+      required: [amount, conditions]
+      properties:
+        amount: {type: number, example: 2000}
+        conditions: {type: string}
+    RemandDecision:
+      type: object
+      required: [reason, facility, next_hearing_date]
+      properties:
+        reason: {type: string}
+        facility: {type: string, example: Matsapha Correctional Facility}
+        next_hearing_date: {type: string, format: date-time}
+    VerdictDecision:
+      type: object
+      required: [verdict]
+      properties:
+        verdict: {type: string, enum: [GUILTY, NOT_GUILTY]}
+        sentence_type: {type: string, enum: [IMPRISONMENT, FINE, SUSPENDED]}
+        sentence_months: {type: integer, minimum: 1, description: Required when sentence_type is IMPRISONMENT}
+        fine_amount: {type: number}
+        facility: {type: string}
+    CourtCase:
+      type: object
+      properties:
+        court_case_id: {type: string}
+        police_case_id: {type: string}
+        status:
+          type: string
+          enum: [RECEIVED, HEARING_SCHEDULED, ON_BAIL, ON_REMAND, SENTENCED, CLOSED]
+        suspect: {$ref: '#/components/schemas/Suspect'}
+        hearings:
+          type: array
+          items: {$ref: '#/components/schemas/Hearing'}
+        inmate_id: {type: string, nullable: true}
+    InmateAdmit:
+      type: object
+      required: [national_id, full_name, court_case_id, admission_type, facility]
+      properties:
+        national_id: {type: string}
+        full_name: {type: string}
+        court_case_id: {type: string}
+        admission_type: {type: string, enum: [REMAND, CONVICTED]}
+        facility: {type: string}
+        sentence_months: {type: integer, nullable: true}
+    Inmate:
+      type: object
+      properties:
+        inmate_id: {type: string, example: INM-0001}
+        national_id: {type: string}
+        full_name: {type: string}
+        court_case_id: {type: string}
+        status: {type: string, enum: [REMAND, CONVICTED, TRANSFERRED, RELEASED]}
+        facility: {type: string}
+        sentence_months: {type: integer, nullable: true}
+        admitted_at: {type: string, format: date-time}
+        released_at: {type: string, format: date-time, nullable: true}
+    InmateStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status: {type: string, enum: [REMAND, CONVICTED]}
+        sentence_months: {type: integer, minimum: 1, description: Required when status is CONVICTED}
+    TransferRequest:
+      type: object
+      required: [new_facility, reason]
+      properties:
+        new_facility: {type: string}
+        reason: {type: string}
+    ReleaseRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: {type: string, enum: [SENTENCE_COMPLETED, ACQUITTED, COURT_ORDER, BAIL_GRANTED]}
+        notes: {type: string}
