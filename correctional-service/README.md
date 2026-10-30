@@ -2,32 +2,31 @@
 
 ## 1. Project Overview
 
-The Correctional Service Microservice is part of the CSC411 Justice Administration Mini Project developed for the University of Eswatini, Department of Computer Science.
+The Correctional Service Microservice is part of the CSC411 Justice Administration System. It manages correctional records and activities after individuals enter the correctional system through the justice process.
 
-The microservice is designed to support correctional administration by managing inmates after court processing. It provides functionality for inmate admission, status management, transfers between correctional facilities, releases and audit logging.
+The microservice provides functionality for inmate admission, inmate status updates, transfers between correctional facilities, releases, and audit logging.
 
-The service is developed using FastAPI and exposes REST API endpoints that can be accessed by other services within the integrated Justice Administration system.
+It is designed to integrate with the Police and Judiciary microservices through REST-based communication and shared authentication.
 
 ## 2. Technologies Used
 
-The following technologies are used in the development of this microservice:
-
-- **Python:** Main programming language.
-- **FastAPI:** Framework for developing REST APIs.
-- **SQLite:** Database used for storing application records.
-- **JWT:** Used for authentication and access control.
-- **Uvicorn:** ASGI server used to run the application.
-- **Git and GitHub:** Version control and collaborative development.
-- **Swagger UI:** Used for viewing and testing API endpoints.
+- **Python** – Main programming language.
+- **FastAPI** – Backend framework for developing REST APIs.
+- **SQLite** – Database for storing correctional records.
+- **JWT (JSON Web Tokens)** – Authentication and authorization.
+- **bcrypt** – Password hashing.
+- **Uvicorn** – ASGI server used to run the application.
+- **Git and GitHub** – Version control and source-code collaboration.
+- **Swagger UI** – API documentation and testing.
 
 ## 3. Project Structure
 
 ```text
 correctional-service/
 │
-├── main.py
 ├── auth.py
 ├── database.py
+├── main.py
 ├── requirements.txt
 ├── test_flow.py
 ├── .env.example
@@ -35,91 +34,79 @@ correctional-service/
 └── README.md
 ```
 
-### Main Files
-
-- `main.py`: Contains the FastAPI application and API endpoints.
-- `auth.py`: Handles authentication and JWT-related functionality.
-- `database.py`: Handles database configuration and operations.
-- `requirements.txt`: Lists the Python dependencies required by the application.
-- `test_flow.py`: Contains the application flow testing code.
-- `.env.example`: Provides an example of the required environment configuration.
-- `.gitignore`: Specifies files and directories that should not be uploaded to GitHub.
-
 ## 4. Requirements
 
 Before running the application, ensure that you have installed:
 
-- Python 3.10 or later.
-- Git.
-- Visual Studio Code or another suitable code editor.
+- Python 3.10 or later
+- Visual Studio Code
+- Git
 
 ## 5. Installation and Setup
 
 ### Step 1: Clone the Repository
 
-Clone the shared group repository:
-
-```bash
+```powershell
 git clone https://github.com/Phiwayini-Thwala/csc411-justice-administration.git
 ```
 
-Navigate to the Correctional Service folder:
+### Step 2: Navigate to the Correctional Service Folder
 
-```bash
+```powershell
 cd csc411-justice-administration/correctional-service
 ```
 
-### Step 2: Create a Virtual Environment
+### Step 3: Create a Virtual Environment
 
-```bash
+```powershell
 python -m venv .venv
 ```
 
-### Step 3: Activate the Virtual Environment
-
-For Windows PowerShell:
+### Step 4: Activate the Virtual Environment
 
 ```powershell
-.venv\Scripts\activate
+.\.venv\Scripts\activate
 ```
 
-### Step 4: Install Dependencies
+### Step 5: Install Dependencies
 
-```bash
+```powershell
 pip install -r requirements.txt
 ```
 
 ## 6. Environment Configuration
 
-The application uses an environment variable for JWT configuration.
+The application reads the JWT secret from the `JWT_SECRET` environment variable.
 
-Create a `.env` file in the `correctional-service` folder using `.env.example` as a guide.
+For Windows PowerShell, set the variable before starting the application:
 
-Example:
-
-```env
-JWT_SECRET=your-secure-shared-secret-of-at-least-32-characters
+```powershell
+$env:JWT_SECRET="your-secure-shared-secret-of-at-least-32-characters"
 ```
 
-**Important:** The JWT secret must match the secret configured in the other participating services. Use the group's agreed secret and keep actual secret values out of GitHub.
+The JWT secret must be the same across the Police, Judiciary, and Correctional Service applications when shared JWT authentication is used.
+
+**Important:** Do not upload actual secret values to GitHub. The application currently has a development fallback secret intended only for local development and testing.
+
+The `.env.example` file is provided as a reference. The application does not automatically load `.env` files in its current configuration.
 
 ## 7. Running the Application
 
-After installing the dependencies and configuring the environment, start the FastAPI server:
+Start the Correctional Service API using:
 
-```bash
+```powershell
 uvicorn main:app --port 8003 --reload
 ```
 
-The application will be available at:
+The application will run locally at:
 
 ```text
 http://127.0.0.1:8003
 ```
 
-## 8. API Documentation and Testing
+### API Documentation
 
-FastAPI automatically provides interactive API documentation through Swagger UI.
+FastAPI provides interactive API documentation through Swagger UI.
 
 Open the following address in your browser:
 
@@ -127,47 +114,53 @@ Open the following address in your browser:
 http://127.0.0.1:8003/docs
 ```
 
-Swagger UI allows users to view available endpoints, submit requests and inspect responses.
+Swagger UI can be used to view, test, and interact with the available API endpoints.
 
-The implemented functionality includes:
+## 8. Main Functionalities
 
-- User authentication and login.
-- Inmate registration and admission.
-- Inmate status updates.
-- Transfer of inmates between correctional facilities.
-- Inmate release processing.
-- Viewing audit logs by authorised administrators.
+The Correctional Service Microservice supports the following operations:
 
-For protected endpoints, authenticate using the login endpoint and the returned JWT access token.
+1. **Authentication:** Allows authorized users to access protected API endpoints.
+2. **Inmate Admission:** Records individuals admitted into the correctional system.
+3. **Inmate Status Management:** Supports updates to inmate statuses, including REMAND and CONVICTED.
+4. **Facility Transfers:** Records transfers between correctional facilities.
+5. **Inmate Release:** Supports the release of inmates using authorized release reasons, including court orders.
+6. **Audit Logging:** Records important activities performed within the system for accountability and tracking.
 
 ## 9. Testing
 
-The service has been tested using Swagger UI.
+The project includes a test file named `test_flow.py`.
 
-The tested application flow includes:
+The main workflow tested includes:
 
-1. User authentication.
-2. Inmate admission.
-3. Updating an inmate's status from REMAND to CONVICTED.
-4. Transferring an inmate to another correctional facility.
-5. Processing an inmate release using a court order.
-6. Retrieving audit logs.
+- User authentication.
+- Inmate admission.
+- Updating an inmate's status.
+- Transferring an inmate to another correctional facility.
+- Releasing an inmate using a court order.
+- Retrieving audit logs.
 
-## 10. Integration
+## 10. Integration with Other Microservices
 
-The Correctional Service is intended to form part of the integrated Justice Administration system involving the Police, Judiciary and Correctional Services.
+The Correctional Service Microservice forms part of the larger Justice Administration System, which includes:
 
-The service is designed to support the correctional stage of the process after court proceedings. Integration testing with the other participating services is part of the overall group project.
+- Police Service
+- Judiciary Service
+- Correctional Service
 
-## 11. Project Information
+It is intended to work with the other services through REST API communication and shared authentication.
 
-**Institution:** University of Eswatini  
-**Department:** Computer Science  
-**Programme:** BSc Information Technology  
-**Course:** Integrative Programming Technologies  
-**Course Code:** CSC411  
-**Project:** Justice Administration Mini Project  
-**Component:** Correctional Service Microservice
+Integration testing with the Police and Judiciary microservices will be performed as part of the overall group project.
 
-**GitHub Repository:**  
+## 11. Academic Information
+
+**Course:** CSC411 – Integrative Programming Technologies  
+**Project:** Justice Administration System  
+**Component:** Correctional Service Microservice  
+**Institution:** University of Eswatini (UNESWA)
+
+## 12. Repository
+
+GitHub Repository:
+
 https://github.com/Phiwayini-Thwala/csc411-justice-administration
