@@ -5,6 +5,7 @@ from typing import Literal, Optional
 import bcrypt
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -20,6 +21,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Correctional Service", version="1.0.0", lifespan=lifespan)
+
+# Allow the browser frontend (served from another origin/port) to call this API
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 # Court officers act only through Judiciary service calls (intended use, see design 6.2)
 COURT_WRITE = ("court_officer", "correctional_officer", "admin")
