@@ -1,0 +1,1316 @@
+{
+  "info": {
+    "_postman_id": "2888a4f5-7166-4d82-a543-b09784fbc11f",
+    "name": "CSC411 Justice Administration - Full Flow",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Run with the Collection Runner. Folders 1-3 only need the Correctional service (8003). Folder 4 needs Police (8001), Judiciary (8002) and Correctional (8003) running with the same JWT_SECRET."
+  },
+  "item": [
+    {
+      "name": "1 Auth (run first)",
+      "description": "",
+      "item": [
+        {
+          "name": "Login correctional1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Token returned\", () => pm.expect(pm.response.json().access_token).to.be.a(\"string\"));",
+                  "pm.collectionVariables.set(\"tok_correctional\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{correctional_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"correctional1\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login court1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Token returned\", () => pm.expect(pm.response.json().access_token).to.be.a(\"string\"));",
+                  "pm.collectionVariables.set(\"tok_court\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{correctional_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"court1\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login police1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Token returned\", () => pm.expect(pm.response.json().access_token).to.be.a(\"string\"));",
+                  "pm.collectionVariables.set(\"tok_police\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{correctional_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"police1\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login admin1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Token returned\", () => pm.expect(pm.response.json().access_token).to.be.a(\"string\"));",
+                  "pm.collectionVariables.set(\"tok_admin\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{correctional_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin1\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login - wrong password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Error body is {error, message}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"error\"); pm.expect(j).to.have.property(\"message\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{correctional_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"correctional1\",\n  \"password\": \"wrong\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 Correctional service",
+      "description": "Admit, view, convict, transfer, release, audit",
+      "item": [
+        {
+          "name": "Admit inmate on remand (court_officer)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"court_case\", \"CRT-T-\" + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"inmate_id looks like INM-0000\", () => pm.expect(/^INM-\\d{4}$/.test(pm.response.json().inmate_id)).to.be.true);",
+                  "pm.test(\"status is REMAND\", () => pm.expect(pm.response.json().status === \"REMAND\").to.be.true);",
+                  "pm.collectionVariables.set(\"inmate_id\", pm.response.json().inmate_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_court}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"national_id\": \"8001015800083\",\n  \"full_name\": \"Sipho Dlamini\",\n  \"court_case_id\": \"{{court_case}}\",\n  \"admission_type\": \"REMAND\",\n  \"facility\": \"Matsapha Correctional Centre\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Admit same court case again -> 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Error body is {error, message}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"error\"); pm.expect(j).to.have.property(\"message\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_court}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"national_id\": \"8001015800083\",\n  \"full_name\": \"Sipho Dlamini\",\n  \"court_case_id\": \"{{court_case}}\",\n  \"admission_type\": \"REMAND\",\n  \"facility\": \"Matsapha Correctional Centre\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "View inmate (police_officer, read only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"status is REMAND\", () => pm.expect(pm.response.json().status === \"REMAND\").to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_police}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates/{{inmate_id}}"
+          }
+        },
+        {
+          "name": "Update to CONVICTED with sentence",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"status CONVICTED\", () => pm.expect(pm.response.json().status === \"CONVICTED\").to.be.true);",
+                  "pm.test(\"sentence is 18\", () => pm.expect(pm.response.json().sentence_months === 18).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_court}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates/{{inmate_id}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONVICTED\",\n  \"sentence_months\": 18\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Transfer inmate (correctional_officer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"status TRANSFERRED\", () => pm.expect(pm.response.json().status === \"TRANSFERRED\").to.be.true);",
+                  "pm.test(\"history has 1 transfer\", () => pm.expect(pm.response.json().transfers.length === 1).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_correctional}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates/{{inmate_id}}/transfer",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_facility\": \"Sidwashini Correctional Centre\",\n  \"reason\": \"Overcrowding\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Release - sentence completed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"status RELEASED\", () => pm.expect(pm.response.json().status === \"RELEASED\").to.be.true);",
+                  "pm.test(\"released_at set\", () => pm.expect(pm.response.json().released_at !== null).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_correctional}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates/{{inmate_id}}/release",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"SENTENCE_COMPLETED\",\n  \"notes\": \"Sentence served\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Release again -> 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Error body is {error, message}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"error\"); pm.expect(j).to.have.property(\"message\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_correctional}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates/{{inmate_id}}/release",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"COURT_ORDER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Admit remand for acquittal case",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"court_case2\", \"CRT-T2-\" + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"inmate_id2\", pm.response.json().inmate_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_court}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"national_id\": \"8001015800083\",\n  \"full_name\": \"Sipho Dlamini\",\n  \"court_case_id\": \"{{court_case2}}\",\n  \"admission_type\": \"REMAND\",\n  \"facility\": \"Matsapha Correctional Centre\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Court release order - ACQUITTED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"status RELEASED\", () => pm.expect(pm.response.json().status === \"RELEASED\").to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_court}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates/{{inmate_id2}}/release",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"ACQUITTED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Read audit logs (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"audit entries exist\", () => pm.expect(pm.response.json().length > 0).to.be.true);",
+                  "pm.test(\"entry has required fields\", () => pm.expect([\"time\",\"username\",\"role\",\"action\",\"record_id\"].every(k => k in pm.response.json()[0])).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_admin}}"
+              }
+            ],
+            "url": "{{correctional_url}}/audit-logs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 Failure cases (401/403/404/400/409)",
+      "description": "",
+      "item": [
+        {
+          "name": "No token -> 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Error body is {error, message}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"error\"); pm.expect(j).to.have.property(\"message\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates/INM-0001"
+          }
+        },
+        {
+          "name": "Police cannot admit -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"Error body is {error, message}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"error\"); pm.expect(j).to.have.property(\"message\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_police}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"national_id\": \"8001015800083\",\n  \"full_name\": \"Sipho Dlamini\",\n  \"court_case_id\": \"{{court_case}}\",\n  \"admission_type\": \"REMAND\",\n  \"facility\": \"Matsapha Correctional Centre\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Court cannot transfer -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"Error body is {error, message}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"error\"); pm.expect(j).to.have.property(\"message\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_court}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates/INM-0001/transfer",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_facility\": \"X\",\n  \"reason\": \"Y\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Correctional officer cannot read audit logs -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"Error body is {error, message}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"error\"); pm.expect(j).to.have.property(\"message\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_correctional}}"
+              }
+            ],
+            "url": "{{correctional_url}}/audit-logs"
+          }
+        },
+        {
+          "name": "Unknown inmate -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Error body is {error, message}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"error\"); pm.expect(j).to.have.property(\"message\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_correctional}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates/INM-9999"
+          }
+        },
+        {
+          "name": "Missing required field -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error body is {error, message}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"error\"); pm.expect(j).to.have.property(\"message\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_court}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"national_id\": \"1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "CONVICTED without sentence -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error body is {error, message}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"error\"); pm.expect(j).to.have.property(\"message\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_court}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"national_id\": \"8001015800083\",\n  \"full_name\": \"Sipho Dlamini\",\n  \"court_case_id\": \"CRT-NEG-1\",\n  \"admission_type\": \"CONVICTED\",\n  \"facility\": \"Matsapha Correctional Centre\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 Full flow: Police > Judiciary > Correctional",
+      "description": "Needs all three services running",
+      "item": [
+        {
+          "name": "1 Police: register suspect",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"national_id\", String(Date.now()).padStart(13, \"8\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"suspect_id\", pm.response.json().suspect_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_police}}"
+              }
+            ],
+            "url": "{{police_url}}/suspects",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Sipho Dlamini\",\n  \"national_id\": \"{{national_id}}\",\n  \"date_of_birth\": \"1980-01-01\",\n  \"gender\": \"male\",\n  \"address\": \"Ngwane Park, Manzini\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "2 Police: record arrest",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"arrest_id\", pm.response.json().arrest_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_police}}"
+              }
+            ],
+            "url": "{{police_url}}/arrests",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"suspect_id\": \"{{suspect_id}}\",\n  \"arrest_date\": \"2026-10-20T09:00:00\",\n  \"location\": \"Manzini Central\",\n  \"arresting_officer\": \"Insp. Dlamini\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "3 Police: create case",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"case is OPEN\", () => pm.expect(pm.response.json().status === \"OPEN\").to.be.true);",
+                  "pm.collectionVariables.set(\"case_id\", pm.response.json().case_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_police}}"
+              }
+            ],
+            "url": "{{police_url}}/cases",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"arrest_id\": \"{{arrest_id}}\",\n  \"summary\": \"Theft of goods\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "4 Police: add charge",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_police}}"
+              }
+            ],
+            "url": "{{police_url}}/cases/{{case_id}}/charges",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"offence\": \"Theft\",\n  \"statute\": \"Theft Act section 4\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "5 Police: refer case to court (calls Judiciary)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"case is REFERRED\", () => pm.expect(pm.response.json().status === \"REFERRED\").to.be.true);",
+                  "pm.test(\"court_case_id returned\", () => pm.expect(pm.response.json().court_case_id).to.be.true);",
+                  "pm.collectionVariables.set(\"flow_court_case\", pm.response.json().court_case_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_police}}"
+              }
+            ],
+            "url": "{{police_url}}/cases/{{case_id}}/refer"
+          }
+        },
+        {
+          "name": "6 Judiciary: schedule hearing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_court}}"
+              }
+            ],
+            "url": "{{judiciary_url}}/court-cases/{{flow_court_case}}/hearings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hearing_date\": \"2026-11-02T09:00:00\",\n  \"court_name\": \"Manzini Magistrate Court\",\n  \"presiding_officer\": \"Magistrate Simelane\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "7 Judiciary: remand (calls Correctional)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"status ON_REMAND\", () => pm.expect(pm.response.json().status === \"ON_REMAND\").to.be.true);",
+                  "pm.test(\"inmate_id stored\", () => pm.expect(pm.response.json().inmate_id).to.be.true);",
+                  "pm.collectionVariables.set(\"flow_inmate\", pm.response.json().inmate_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_court}}"
+              }
+            ],
+            "url": "{{judiciary_url}}/court-cases/{{flow_court_case}}/remand",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Risk of absconding\",\n  \"facility\": \"Matsapha Correctional Centre\",\n  \"next_hearing_date\": \"2026-11-09T09:00:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "8 Correctional: inmate is on remand",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"status REMAND\", () => pm.expect(pm.response.json().status === \"REMAND\").to.be.true);",
+                  "pm.test(\"court case matches\", () => pm.expect(pm.response.json().court_case_id === pm.collectionVariables.get(\"flow_court_case\")).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_correctional}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates/{{flow_inmate}}"
+          }
+        },
+        {
+          "name": "9 Judiciary: verdict GUILTY, imprisonment (calls Correctional)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_court}}"
+              }
+            ],
+            "url": "{{judiciary_url}}/court-cases/{{flow_court_case}}/verdict",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verdict\": \"GUILTY\",\n  \"sentence_type\": \"IMPRISONMENT\",\n  \"sentence_months\": 12,\n  \"facility\": \"Matsapha Correctional Centre\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "10 Correctional: inmate is now CONVICTED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"status CONVICTED\", () => pm.expect(pm.response.json().status === \"CONVICTED\").to.be.true);",
+                  "pm.test(\"sentence 12 months\", () => pm.expect(pm.response.json().sentence_months === 12).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_correctional}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates/{{flow_inmate}}"
+          }
+        },
+        {
+          "name": "11 Correctional: transfer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_correctional}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates/{{flow_inmate}}/transfer",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_facility\": \"Sidwashini Correctional Centre\",\n  \"reason\": \"Rehabilitation programme\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "12 Correctional: release (sentence completed)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"status RELEASED\", () => pm.expect(pm.response.json().status === \"RELEASED\").to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_correctional}}"
+              }
+            ],
+            "url": "{{correctional_url}}/inmates/{{flow_inmate}}/release",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"SENTENCE_COMPLETED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "13 Police: view case status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_police}}"
+              }
+            ],
+            "url": "{{police_url}}/cases/{{case_id}}"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "correctional_url",
+      "value": "http://localhost:8003"
+    },
+    {
+      "key": "police_url",
+      "value": "http://localhost:8001"
+    },
+    {
+      "key": "judiciary_url",
+      "value": "http://localhost:8002"
+    },
+    {
+      "key": "password",
+      "value": "Passw0rd!"
+    }
+  ]
+}
