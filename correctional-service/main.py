@@ -15,12 +15,12 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from auth import ApiError, create_token, require_roles
 from database import get_conn, init_db, now
 
-
 # ---------------------------------------------------------
 # CONFIGURATION
 # ---------------------------------------------------------
 
 COURT_WRITE = ("court_officer", "correctional_officer", "admin")
+
 READ_ROLES = (
     "correctional_officer",
     "admin",
@@ -29,19 +29,18 @@ READ_ROLES = (
 )
 
 TRANSFER_ROLES = ("correctional_officer", "admin")
+EDIT_ROLES = ("correctional_officer", "admin")
 ADMIN_ROLES = ("admin",)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
     yield
 
-
 app = FastAPI(
     title="Correctional Service",
     description="Correctional records and custody management microservice.",
-    version="1.1.0",
+    version="1.2.0",
     lifespan=lifespan,
 )
 
@@ -52,7 +51,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # ---------------------------------------------------------
 # ERROR HANDLING
@@ -68,12 +66,8 @@ async def api_error_handler(request: Request, exc: ApiError):
         },
     )
 
-
 @app.exception_handler(RequestValidationError)
-async def validation_error_handler(
-    request: Request,
-    exc: RequestValidationError,
-):
+async def validation_error_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
         status_code=422,
         content={
@@ -83,12 +77,8 @@ async def validation_error_handler(
         },
     )
 
-
 @app.exception_handler(StarletteHTTPException)
-async def http_error_handler(
-    request: Request,
-    exc: StarletteHTTPException,
-):
+async def http_error_handler(request: Request, exc: StarletteHTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -96,7 +86,6 @@ async def http_error_handler(
             "message": str(exc.detail),
         },
     )
-
 
 # ---------------------------------------------------------
 # REQUEST MODELS
@@ -106,7 +95,6 @@ class LoginRequest(BaseModel):
     username: str = Field(min_length=1)
     password: str = Field(min_length=1)
 
-
 class AdmitRequest(BaseModel):
     national_id: str = Field(min_length=1)
     court_case_id: str = Field(min_length=1)
@@ -115,16 +103,18 @@ class AdmitRequest(BaseModel):
     full_name: Optional[str] = None
     sentence_months: Optional[int] = Field(default=None, ge=1)
 
+class EditInmateRequest(BaseModel):
+    full_name: Optional[str] = None
+    facility: Optional[str] = None
+    sentence_months: Optional[int] = Field(default=None, ge=1)
 
 class StatusUpdate(BaseModel):
     status: Literal["REMAND", "CONVICTED"]
     sentence_months: Optional[int] = Field(default=None, ge=1)
 
-
 class TransferRequest(BaseModel):
     new_facility: str = Field(min_length=1)
     reason: Optional[str] = None
-
 
 class ReleaseRequest(BaseModel):
     reason: Literal[
@@ -134,7 +124,6 @@ class ReleaseRequest(BaseModel):
         "BAIL_GRANTED",
     ]
     notes: Optional[str] = None
-
 
 # ---------------------------------------------------------
 # DATABASE HELPERS
@@ -151,7 +140,6 @@ def audit(username: str, role: str, action: str, record_id: Optional[str] = None
             (now(), username, role, action, record_id),
         )
 
-
 def get_inmate(inmate_id: str):
     with get_conn() as conn:
         inmate = conn.execute(
@@ -163,7 +151,6 @@ def get_inmate(inmate_id: str):
         raise ApiError(404, "NOT_FOUND", "Inmate record was not found.")
 
     return dict(inmate)
-
 
 def full_inmate(inmate_id: str):
     inmate = get_inmate(inmate_id)
@@ -195,7 +182,6 @@ def full_inmate(inmate_id: str):
 
     return inmate
 
-
 # ---------------------------------------------------------
 # SERVICE HEALTH
 # ---------------------------------------------------------
@@ -205,9 +191,8 @@ def health_check():
     return {
         "service": "Correctional Service",
         "status": "online",
-        "version": "1.1.0",
+        "version": "1.2.0",
     }
-
 
 # ---------------------------------------------------------
 # AUTHENTICATION
@@ -240,7 +225,6 @@ def login(data: LoginRequest):
         "username": user["username"],
         "role": user["role"],
     }
-
 
 # ---------------------------------------------------------
 # INMATE LIST
@@ -280,7 +264,6 @@ def list_inmates(
 
     inmates = [dict(row) for row in rows]
 
-    # Do not expose national ID in the general listing.
     for inmate in inmates:
         inmate.pop("national_id", None)
 
@@ -288,7 +271,6 @@ def list_inmates(
         "total": len(inmates),
         "inmates": inmates,
     }
-
 
 # ---------------------------------------------------------
 # ADMIT AN INMATE
@@ -334,7 +316,6 @@ def admit_inmate(
         ).fetchone()[0]
 
         inmate_id = f"INM-{count + 1:04d}"
-
         admitted_at = now()
 
         conn.execute(
@@ -372,7 +353,6 @@ def admit_inmate(
         "status": data.admission_type,
     }
 
-
 # ---------------------------------------------------------
 # VIEW ONE INMATE
 # ---------------------------------------------------------
@@ -384,6 +364,92 @@ def get_inmate_details(
 ):
     return full_inmate(inmate_id)
 
+# ---------------------------------------------------------
+# EDIT INMATE DETAILS
+# ---------------------------------------------------------
+
+@app.put("/inmates/{inmate_id}")
+def edit_inmate(
+    inmate_id: str,
+    data: EditInmateRequest,
+    user: dict = Depends(require_roles(*EDIT_ROLES)),
+):
+    inmate = get_inmate(inmate_id)
+
+    if inmate["status"] == "RELEASED":
+        raise ApiError(
+            409,
+            "CONFLICT",
+            "A released inmate record cannot be edited.",
+        )
+
+    changes = data.model_dump(exclude_unset=True)
+
+    if not changes:
+        raise ApiError(
+            422,
+            "VALIDATION_ERROR",
+            "Provide at least one field to update.",
+        )
+
+    allowed_fields = {"full_name", "facility", "sentence_months"}
+
+    if not set(changes).issubset(allowed_fields):
+        raise ApiError(
+            422,
+            "VALIDATION_ERROR",
+            "One or more fields cannot be updated.",
+        )
+
+    for field in ("full_name", "facility"):
+        if field in changes:
+            value = changes[field]
+
+            if value is None or not value.strip():
+                raise ApiError(
+                    422,
+                    "VALIDATION_ERROR",
+                    f"{field.replace('_', ' ').capitalize()} cannot be empty.",
+                )
+
+            changes[field] = value.strip()
+
+    if "sentence_months" in changes:
+        if inmate["status"] == "REMAND" and changes["sentence_months"] is not None:
+            raise ApiError(
+                422,
+                "VALIDATION_ERROR",
+                "A remand inmate cannot have a sentence duration.",
+            )
+
+        if inmate["status"] == "CONVICTED" and changes["sentence_months"] is None:
+            raise ApiError(
+                422,
+                "VALIDATION_ERROR",
+                "A convicted inmate must have a sentence duration.",
+            )
+
+    columns = ", ".join(f"{field} = ?" for field in changes)
+    values = list(changes.values())
+    values.append(inmate_id)
+
+    with get_conn() as conn:
+        conn.execute(
+            f"UPDATE inmates SET {columns} WHERE inmate_id = ?",
+            values,
+        )
+
+    audit(
+        user["username"],
+        user["role"],
+        "INMATE_DETAILS_UPDATED",
+        inmate_id,
+    )
+
+    return {
+        "message": "Inmate details updated successfully.",
+        "inmate": full_inmate(inmate_id),
+    }
 
 # ---------------------------------------------------------
 # UPDATE INMATE STATUS / RECORD CONVICTION
@@ -409,6 +475,13 @@ def update_inmate_status(
             422,
             "VALIDATION_ERROR",
             "Sentence duration is required for a convicted inmate.",
+        )
+
+    if data.status == "REMAND" and data.sentence_months is not None:
+        raise ApiError(
+            422,
+            "VALIDATION_ERROR",
+            "A remand inmate should not have a sentence duration.",
         )
 
     with get_conn() as conn:
@@ -439,7 +512,6 @@ def update_inmate_status(
         "sentence_months": data.sentence_months,
     }
 
-
 # ---------------------------------------------------------
 # TRANSFER AN INMATE
 # ---------------------------------------------------------
@@ -466,7 +538,16 @@ def transfer_inmate(
             "This inmate is already marked as transferred.",
         )
 
-    if inmate["facility"].strip().lower() == data.new_facility.strip().lower():
+    new_facility = data.new_facility.strip()
+
+    if not new_facility:
+        raise ApiError(
+            422,
+            "VALIDATION_ERROR",
+            "The new facility cannot be empty.",
+        )
+
+    if inmate["facility"].strip().lower() == new_facility.lower():
         raise ApiError(
             409,
             "CONFLICT",
@@ -487,7 +568,7 @@ def transfer_inmate(
             (
                 inmate_id,
                 inmate["facility"],
-                data.new_facility,
+                new_facility,
                 data.reason,
                 transferred_at,
                 user["username"],
@@ -500,7 +581,7 @@ def transfer_inmate(
             SET facility = ?, status = 'TRANSFERRED'
             WHERE inmate_id = ?
             """,
-            (data.new_facility, inmate_id),
+            (new_facility, inmate_id),
         )
 
     audit(
@@ -513,10 +594,9 @@ def transfer_inmate(
     return {
         "message": "Inmate transferred successfully.",
         "inmate_id": inmate_id,
-        "facility": data.new_facility,
+        "facility": new_facility,
         "status": "TRANSFERRED",
     }
-
 
 # ---------------------------------------------------------
 # RELEASE AN INMATE
@@ -579,7 +659,6 @@ def release_inmate(
         "reason": data.reason,
         "released_at": released_at,
     }
-
 
 # ---------------------------------------------------------
 # AUDIT LOGS - ADMIN ONLY
