@@ -192,7 +192,7 @@ tbody tr:hover{background:#fafbff}
   <div class="userbox">
    <div class="avatar" id="avatar">U</div>
    <div class="userinfo"><strong id="sideUser">User</strong><small id="sideRole">Role</small></div>
-   <button class="btn sm" id="logoutBtn" type="button">Exit</button>
+   <button class="btn sm" id="logoutBtn" type="button">Logout</button>
   </div>
  </div>
 </aside>
@@ -305,18 +305,61 @@ tbody tr:hover{background:#fafbff}
 </main>
 </div>
 
+<!-- VIEW DETAILS MODAL -->
 <div class="modal-bg" id="detailModal">
  <div class="modal">
   <div class="modal-head"><h2>Inmate Details</h2><button class="close" id="closeModal" type="button">×</button></div>
   <div id="detailContent"></div>
  </div>
 </div>
+
+<!-- EDIT INMATE MODAL -->
+<div class="modal-bg" id="editModal">
+ <div class="modal">
+  <div class="modal-head">
+   <div>
+    <h2>Edit Inmate Record</h2>
+    <p class="muted" id="editInmateId" style="font-size:11px;margin:5px 0 0"></p>
+   </div>
+   <button class="close" id="closeEditModal" type="button">×</button>
+  </div>
+
+  <form id="editForm">
+   <input type="hidden" name="inmate_id" id="editId">
+
+   <div class="field">
+    <label for="editFullName">Full Name</label>
+    <input id="editFullName" name="full_name" required placeholder="Enter full name">
+   </div>
+
+   <div class="field">
+    <label for="editFacility">Correctional Facility</label>
+    <input id="editFacility" name="facility" required placeholder="Enter facility">
+   </div>
+
+   <div class="field">
+    <label for="editSentence">Sentence Duration (months)</label>
+    <input id="editSentence" name="sentence_months" type="number" min="1" step="1" required placeholder="Enter sentence duration">
+    <p class="hint">Enter the sentence duration in months.</p>
+   </div>
+
+   <div style="display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap">
+    <button class="btn" id="cancelEdit" type="button">Cancel</button>
+    <button class="btn primary" id="saveEditBtn" type="submit">Save Changes</button>
+   </div>
+  </form>
+ </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 "use strict";
 
 const API = "http://127.0.0.1:8003";
+
+const SESSION_TOKEN_KEY = "correctional_access_token";
+const SESSION_USER_KEY = "correctional_current_user";
 
 let token = "";
 let currentUser = null;
@@ -362,6 +405,32 @@ async function api(path, options={}) {
  return data;
 }
 
+function saveSession() {
+ if(!token || !currentUser) return;
+
+ sessionStorage.setItem(SESSION_TOKEN_KEY,token);
+ sessionStorage.setItem(SESSION_USER_KEY,JSON.stringify(currentUser));
+}
+
+function clearSession() {
+ sessionStorage.removeItem(SESSION_TOKEN_KEY);
+ sessionStorage.removeItem(SESSION_USER_KEY);
+}
+
+function displayAuthenticatedApp() {
+ if(!currentUser || !token) return;
+
+ $("sideUser").textContent=currentUser.username;
+ $("sideRole").textContent=currentUser.role.replace(/_/g," ");
+ $("avatar").textContent=currentUser.username.charAt(0).toUpperCase();
+
+ $("loginScreen").style.display="none";
+ $("app").style.display="flex";
+
+ setRoleAccess();
+ showPage("dashboard");
+}
+
 function showPage(page) {
  const target=$("page-"+page);
  if(!target) return;
@@ -391,11 +460,17 @@ function showPage(page) {
 }
 
 document.querySelectorAll("[data-page]").forEach(btn=>{
- btn.addEventListener("click",()=>showPage(btn.dataset.page));
+ btn.addEventListener("click",()=>{
+  if(btn.style.display==="none") return;
+  showPage(btn.dataset.page);
+ });
 });
 
 document.querySelectorAll("[data-goto]").forEach(btn=>{
- btn.addEventListener("click",()=>showPage(btn.dataset.goto));
+ btn.addEventListener("click",()=>{
+  if(btn.style.display==="none") return;
+  showPage(btn.dataset.goto);
+ });
 });
 
 function setRoleAccess() {
@@ -427,96 +502,129 @@ function setRoleAccess() {
  });
 }
 
-/* CORRECTED LOGIN HANDLER */
+/* LOGIN */
 $("loginForm").addEventListener("submit", async e => {
  e.preventDefault();
 
- const button = $("loginButton");
- button.disabled = true;
- $("loginError").textContent = "";
-
- // Authenticate separately from dashboard initialisation.
- let result;
+ const button=$("loginButton");
+ button.disabled=true;
+ $("loginError").textContent="";
 
  try {
-  result = await api("/auth/login", {
-   method: "POST",
-   body: JSON.stringify({
-    username: $("username").value.trim(),
-    password: $("password").value
+  const result=await api("/auth/login",{
+   method:"POST",
+   body:JSON.stringify({
+    username:$("username").value.trim(),
+    password:$("password").value
    })
   });
 
-  if (!result.access_token || !result.username || !result.role) {
+  if(!result.access_token || !result.username || !result.role) {
    throw new Error("The login response is incomplete.");
   }
 
- } catch (err) {
-  $("loginError").textContent =
-   err.message || "Login failed. Please try again.";
+  token=result.access_token;
+  currentUser={
+   username:result.username,
+   role:result.role
+  };
 
-  button.disabled = false;
-  return;
- }
+  saveSession();
+  displayAuthenticatedApp();
 
- // Establish the authenticated session.
- token = result.access_token;
-
- currentUser = {
-  username: result.username,
-  role: result.role
- };
-
- $("sideUser").textContent = currentUser.username;
- $("sideRole").textContent = currentUser.role.replace(/_/g, " ");
- $("avatar").textContent =
-  currentUser.username.charAt(0).toUpperCase();
-
- // Display the application after successful authentication.
- $("loginScreen").style.display = "none";
- $("app").style.display = "flex";
-
- // Initialise the dashboard without resetting the login session.
- try {
-  setRoleAccess();
-  showPage("dashboard");
-
-  notify("Welcome, " + currentUser.username + ".");
+  notify("Welcome, "+currentUser.username+".");
 
   await loadInmates();
 
- } catch (err) {
-  console.error("Dashboard initialisation error:", err);
+ } catch(err) {
+  console.error("Login or dashboard error:",err);
 
-  notify(
-   "Login successful, but dashboard loading encountered an error: " +
-   err.message,
-   true
-  );
+  if(!token) {
+   $("loginError").textContent=err.message||"Login failed. Please try again.";
+  } else {
+   notify("Login successful, but dashboard loading encountered an error: "+err.message,true);
+  }
 
  } finally {
-  button.disabled = false;
+  button.disabled=false;
  }
 });
 
+/* LOGOUT */
 $("logoutBtn").addEventListener("click",()=>{
+ if(!currentUser || !token) return;
+
+ const confirmed=window.confirm("Are you sure you want to sign out?");
+ if(!confirmed) return;
+
  token="";
  currentUser=null;
  inmates=[];
+
+ clearSession();
 
  $("app").style.display="none";
  $("loginScreen").style.display="flex";
 
  $("password").value="";
  $("loginError").textContent="";
+ $("username").value="";
+
+ $("totalStat").textContent="0";
+ $("remandStat").textContent="0";
+ $("convictedStat").textContent="0";
+ $("transferredStat").textContent="0";
+ $("releasedStat").textContent="0";
 });
+
+/* RESTORE SESSION AFTER PAGE RELOAD */
+function restoreSession() {
+ const savedToken=sessionStorage.getItem(SESSION_TOKEN_KEY);
+ const savedUser=sessionStorage.getItem(SESSION_USER_KEY);
+
+ if(!savedToken || !savedUser) return;
+
+ try {
+  const parsedUser=JSON.parse(savedUser);
+
+  if(!parsedUser.username || !parsedUser.role) {
+   throw new Error("Invalid saved session.");
+  }
+
+  token=savedToken;
+  currentUser=parsedUser;
+
+  displayAuthenticatedApp();
+  loadInmates();
+
+ } catch(err) {
+  console.error("Could not restore session:",err);
+  token="";
+  currentUser=null;
+  clearSession();
+  $("app").style.display="none";
+  $("loginScreen").style.display="flex";
+ }
+}
 
 function statusBadge(status){
  return `<span class="badge ${esc(status)}">${esc(status)}</span>`;
 }
 
+/* EDIT PERMISSION: correctional officers and administrators */
+function canEditInmates(){
+ return ["correctional_officer","admin"].includes(currentUser?.role);
+}
+
 function recordAction(id){
- return `<button class="btn sm" onclick="viewInmate('${esc(id)}')">View</button>`;
+ const safeId=esc(id);
+
+ return `
+  <div class="actions">
+   <button class="btn sm" type="button" onclick="viewInmate('${safeId}')">View</button>
+   ${canEditInmates()?`<button class="btn sm primary" type="button" onclick="editInmate('${safeId}')">Edit</button>`:""}
+  </div>
+ `;
 }
 
 function renderRows(rows,target,showAdmission=false) {
@@ -602,8 +710,18 @@ $("clearSearchBtn").addEventListener("click",()=>{
  loadInmates();
 });
 
-$("refreshBtn").addEventListener("click",loadInmates);
+/* REFRESH RECORDS, DASHBOARD AND AUDIT WHEN RELEVANT */
+$("refreshBtn").addEventListener("click",async()=>{
+ await loadInmates();
 
+ if($("page-audit").classList.contains("active") && currentUser?.role==="admin"){
+  await loadAudit();
+ }
+
+ notify("Records and dashboard statistics refreshed.");
+});
+
+/* VIEW INMATE DETAILS */
 async function viewInmate(id){
  try {
   const i=await api("/inmates/"+encodeURIComponent(id));
@@ -651,6 +769,93 @@ async function viewInmate(id){
  }
 }
 
+/* EDIT INMATE: GET CURRENT DETAILS, THEN PUT THE THREE ACCEPTED FIELDS */
+async function editInmate(id){
+ if(!canEditInmates()){
+  notify("You do not have permission to edit inmate records.",true);
+  return;
+ }
+
+ try {
+  const i=await api("/inmates/"+encodeURIComponent(id));
+
+  $("editId").value=i.inmate_id;
+  $("editInmateId").textContent="Inmate ID: "+i.inmate_id;
+  $("editFullName").value=i.full_name||"";
+  $("editFacility").value=i.facility||"";
+  $("editSentence").value=i.sentence_months??1;
+
+  $("editModal").classList.add("show");
+
+ } catch(err) {
+  notify("Could not load inmate details: "+err.message,true);
+ }
+}
+
+function closeEditModal(){
+ $("editModal").classList.remove("show");
+ $("editForm").reset();
+}
+
+$("closeEditModal").addEventListener("click",closeEditModal);
+$("cancelEdit").addEventListener("click",closeEditModal);
+
+$("editModal").addEventListener("click",e=>{
+ if(e.target===$("editModal")) closeEditModal();
+});
+
+$("editForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+
+ if(!canEditInmates()){
+  notify("You do not have permission to edit inmate records.",true);
+  return;
+ }
+
+ const inmateId=$("editId").value.trim();
+ const fullName=$("editFullName").value.trim();
+ const facility=$("editFacility").value.trim();
+ const sentenceMonths=Number($("editSentence").value);
+
+ if(!inmateId || !fullName || !facility || !Number.isInteger(sentenceMonths) || sentenceMonths<1){
+  notify("Please enter a valid name, facility and sentence duration.",true);
+  return;
+ }
+
+ const button=$("saveEditBtn");
+ button.disabled=true;
+ button.textContent="Saving...";
+
+ try {
+  await api("/inmates/"+encodeURIComponent(inmateId),{
+   method:"PUT",
+   body:JSON.stringify({
+    full_name:fullName,
+    facility:facility,
+    sentence_months:sentenceMonths
+   })
+  });
+
+  closeEditModal();
+
+  await loadInmates();
+
+  if($("recordSearch").value.trim() || $("statusFilter").value){
+   await searchInmates();
+  }
+
+  notify("Inmate record updated successfully.");
+
+ } catch(err) {
+  console.error("Could not update inmate:",err);
+  notify("Could not update inmate: "+err.message,true);
+
+ } finally {
+  button.disabled=false;
+  button.textContent="Save Changes";
+ }
+});
+
 $("closeModal").addEventListener("click",()=>{
  $("detailModal").classList.remove("show");
 });
@@ -669,6 +874,7 @@ function formObject(form){
  return Object.fromEntries(new FormData(form).entries());
 }
 
+/* ADMIT INMATE */
 $("admitForm").addEventListener("submit",async e=>{
  e.preventDefault();
 
@@ -702,6 +908,7 @@ $("admitForm").addEventListener("submit",async e=>{
  }
 });
 
+/* RECORD CONVICTION */
 $("convictionForm").addEventListener("submit",async e=>{
  e.preventDefault();
 
@@ -728,6 +935,7 @@ $("convictionForm").addEventListener("submit",async e=>{
  }
 });
 
+/* TRANSFER INMATE */
 $("transferForm").addEventListener("submit",async e=>{
  e.preventDefault();
 
@@ -754,6 +962,7 @@ $("transferForm").addEventListener("submit",async e=>{
  }
 });
 
+/* RELEASE INMATE */
 $("releaseForm").addEventListener("submit",async e=>{
  e.preventDefault();
 
@@ -780,6 +989,7 @@ $("releaseForm").addEventListener("submit",async e=>{
  }
 });
 
+/* ADMIN AUDIT HISTORY */
 async function loadAudit(){
  if(currentUser?.role!=="admin") {
   notify("Only administrators can view audit history.",true);
@@ -806,6 +1016,9 @@ async function loadAudit(){
 }
 
 $("auditRefresh").addEventListener("click",loadAudit);
+
+/* Restore a saved session after all page elements and handlers exist. */
+restoreSession();
 
 </script>
 </body>
