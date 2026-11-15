@@ -1,0 +1,812 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Correctional Service | Custody Console</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+:root {
+ --bg:#f4f5f9;--surface:#fff;--surface2:#f0f2f8;
+ --text:#1a1d2e;--muted:#6b7190;--border:#e3e6f0;
+ --brand:#3b3fd8;--brand-d:#2c2fb3;--brand-soft:#ecebff;
+ --ok:#0f9d6b;--ok-s:#dcf5ea;--warn:#c27803;--warn-s:#fdf0d5;
+ --bad:#d63b4b;--bad-s:#fde3e6;--info:#1a73e8;--info-s:#e0edff;
+ --grey-s:#e8eaf2;
+ --shadow:0 1px 3px rgba(20,24,60,.08),0 8px 24px rgba(20,24,60,.06);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif;font-size:14px}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.app{display:flex;min-height:100vh}
+.sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);padding:22px 16px;display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;z-index:10}
+.logo{display:flex;align-items:center;gap:11px;padding:4px 8px 28px}
+.logo-mark{width:39px;height:39px;border-radius:12px;background:linear-gradient(135deg,#3b3fd8,#8b5cf6);display:grid;place-items:center;color:white;font-size:19px;font-weight:800}
+.logo strong{display:block;font-size:15px}
+.logo small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+.nav-label{font-size:10px;font-weight:800;letter-spacing:1.1px;color:#9a9eb1;padding:12px 12px 8px}
+.nav{display:flex;align-items:center;gap:12px;width:100%;padding:12px;border:0;background:transparent;color:#626780;text-align:left;border-radius:9px;margin:2px 0;font-weight:600}
+.nav:hover{background:var(--surface2)}
+.nav.active{background:var(--brand-soft);color:var(--brand)}
+.nav .ico{width:20px;text-align:center;font-size:16px}
+.sidebar-bottom{margin-top:auto;border-top:1px solid var(--border);padding-top:16px}
+.userbox{display:flex;align-items:center;gap:10px;padding:9px}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:800}
+.userinfo{min-width:0;flex:1}
+.userinfo strong{display:block;font-size:12px}
+.userinfo small{color:var(--muted);font-size:11px}
+.connection{font-size:11px;color:var(--ok);padding:8px 10px}
+.dot{display:inline-block;width:7px;height:7px;background:var(--ok);border-radius:50%;margin-right:6px}
+.main{margin-left:260px;width:calc(100% - 260px);padding:30px 34px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:27px}
+.topbar h1{font-size:23px;margin:0 0 6px}
+.topbar p{margin:0;color:var(--muted);font-size:13px}
+.top-actions{display:flex;gap:9px;align-items:center}
+.btn{border:1px solid var(--border);background:white;padding:10px 14px;border-radius:8px;font-weight:600;color:var(--text)}
+.btn:hover{background:var(--surface2)}
+.btn.primary{background:var(--brand);color:white;border-color:var(--brand)}
+.btn.primary:hover{background:var(--brand-d)}
+.btn.danger{background:var(--bad);color:white;border-color:var(--bad)}
+.btn.sm{padding:7px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.page{display:none}
+.page.active{display:block}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:25px 0 14px}
+.section-head h2{font-size:16px;margin:0}
+.section-head p{margin:4px 0 0;color:var(--muted);font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:19px;box-shadow:var(--shadow)}
+.stat{display:flex;align-items:center;justify-content:space-between}
+.stat-label{color:var(--muted);font-size:12px;font-weight:600}
+.stat-number{font-size:27px;font-weight:800;margin-top:9px}
+.stat-icon{width:42px;height:42px;border-radius:12px;background:var(--brand-soft);display:grid;place-items:center;font-size:19px}
+.stat-icon.green{background:var(--ok-s)}
+.stat-icon.orange{background:var(--warn-s)}
+.stat-icon.red{background:var(--bad-s)}
+.stat-icon.blue{background:var(--info-s)}
+.panel{background:white;border:1px solid var(--border);border-radius:13px;padding:20px;box-shadow:var(--shadow)}
+.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.quick{border:1px solid var(--border);background:white;border-radius:11px;padding:17px;text-align:left}
+.quick:hover{border-color:var(--brand);background:var(--brand-soft)}
+.quick span{font-size:21px;display:block;margin-bottom:12px}
+.quick strong{font-size:13px;display:block}
+.quick small{font-size:11px;color:var(--muted);display:block;margin-top:5px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px}
+.toolbar input,.toolbar select{max-width:260px}
+input,select,textarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:11px 12px;background:white;color:var(--text);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+label{display:block;font-size:12px;font-weight:700;margin-bottom:7px}
+.field{margin-bottom:16px}
+textarea{min-height:85px;resize:vertical}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.form-card{max-width:850px}
+.form-card h2{font-size:17px;margin:0 0 6px}
+.form-card .intro{color:var(--muted);font-size:12px;margin:0 0 22px}
+.hint{font-size:11px;color:var(--muted);margin-top:6px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.7px;background:#fafbfe;padding:13px 12px}
+td{padding:13px 12px;border-top:1px solid var(--border);font-size:12px}
+tbody tr:hover{background:#fafbff}
+.table-wrap{overflow-x:auto}
+.badge{display:inline-block;padding:5px 9px;border-radius:20px;font-size:10px;font-weight:800}
+.badge.REMAND{background:var(--warn-s);color:var(--warn)}
+.badge.CONVICTED{background:var(--info-s);color:var(--info)}
+.badge.TRANSFERRED{background:var(--brand-soft);color:var(--brand)}
+.badge.RELEASED{background:var(--ok-s);color:var(--ok)}
+.muted{color:var(--muted)}
+.empty{text-align:center;padding:35px;color:var(--muted)}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.modal-bg{position:fixed;inset:0;background:#11152c88;z-index:30;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.show{display:flex}
+.modal{width:min(700px,100%);max-height:90vh;overflow:auto;background:white;border-radius:15px;padding:23px;box-shadow:0 15px 60px #0003}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.modal-head h2{font-size:18px;margin:0}
+.close{border:0;background:var(--surface2);border-radius:8px;width:34px;height:34px;font-size:18px}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.detail{background:var(--surface2);padding:12px;border-radius:9px}
+.detail small{display:block;color:var(--muted);font-size:10px;margin-bottom:6px}
+.detail strong{font-size:13px;overflow-wrap:anywhere}
+.history{border-left:2px solid var(--brand-soft);padding:5px 0 5px 15px;margin:12px 0}
+.history p{font-size:12px;margin:0 0 5px}
+.toast{position:fixed;right:22px;bottom:22px;z-index:60;padding:14px 18px;border-radius:10px;background:#20243b;color:white;box-shadow:var(--shadow);display:none;max-width:360px}
+.toast.show{display:block}
+.toast.error{background:#9f2635}
+.login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#ecebff,#f4f5f9 55%,#e4e9ff);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{width:min(410px,100%);background:white;border:1px solid var(--border);border-radius:17px;padding:32px;box-shadow:0 15px 50px #25265a1a}
+.login-card .logo{padding:0 0 23px}
+.login-card h1{font-size:22px;margin:0 0 7px}
+.login-card>p{font-size:12px;color:var(--muted);margin:0 0 23px}
+.login-card .btn{width:100%;margin-top:5px}
+.login-error{color:var(--bad);font-size:12px;margin:10px 0;min-height:16px}
+.mobile-head{display:none}
+@media(max-width:1050px){.grid{grid-template-columns:repeat(2,1fr)}.quick-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){
+ .sidebar{width:100%;height:auto;position:relative;inset:auto;padding:12px;display:block}
+ .sidebar .logo{padding:5px 8px 12px}
+ .sidebar .nav-label,.sidebar-bottom{display:none}
+ .sidebar nav{display:flex;overflow:auto}
+ .nav{min-width:max-content;width:auto;padding:9px}
+ .app{display:block}
+ .main{margin:0;width:100%;padding:20px 14px}
+ .topbar{align-items:flex-start}
+ .grid{grid-template-columns:1fr 1fr;gap:9px}
+ .card{padding:13px}
+ .stat-number{font-size:22px}
+ .quick-grid{grid-template-columns:1fr 1fr}
+ .form-grid,.detail-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<div class="login-screen" id="loginScreen">
+ <div class="login-card">
+  <div class="logo">
+   <div class="logo-mark">C</div>
+   <div><strong>Justice Administration</strong><small>Correctional Service Portal</small></div>
+  </div>
+  <h1>Custody Console</h1>
+  <p>Sign in to manage correctional records and custody activities.</p>
+  <form id="loginForm">
+   <div class="field">
+    <label for="username">Username</label>
+    <input id="username" required autocomplete="username" placeholder="Enter username">
+   </div>
+   <div class="field">
+    <label for="password">Password</label>
+    <input id="password" type="password" required autocomplete="current-password" placeholder="Enter password">
+   </div>
+   <div class="login-error" id="loginError"></div>
+   <button class="btn primary" type="submit" id="loginButton">Sign in</button>
+  </form>
+  <p style="margin-top:18px;font-size:11px">CSC411 · Justice Administration System</p>
+ </div>
+</div>
+
+<div class="app" id="app" style="display:none">
+<aside class="sidebar">
+ <div class="logo">
+  <div class="logo-mark">C</div>
+  <div><strong>Justice Administration</strong><small>Correctional Service</small></div>
+ </div>
+
+ <div class="nav-label">WORKSPACE</div>
+ <nav>
+  <button class="nav active" data-page="dashboard"><span class="ico">▦</span>Dashboard</button>
+  <button class="nav" data-page="records"><span class="ico">▤</span>Inmate Records</button>
+  <button class="nav" data-page="admit"><span class="ico">＋</span>Admit Inmate</button>
+  <button class="nav" data-page="conviction"><span class="ico">✓</span>Record Conviction</button>
+  <button class="nav" data-page="transfer"><span class="ico">⇄</span>Transfer Inmate</button>
+  <button class="nav" data-page="release"><span class="ico">↗</span>Release Inmate</button>
+  <button class="nav admin-only" data-page="audit" style="display:none"><span class="ico">◷</span>Audit History</button>
+ </nav>
+
+ <div class="sidebar-bottom">
+  <div class="connection"><span class="dot"></span>Correctional API connected</div>
+  <div class="userbox">
+   <div class="avatar" id="avatar">U</div>
+   <div class="userinfo"><strong id="sideUser">User</strong><small id="sideRole">Role</small></div>
+   <button class="btn sm" id="logoutBtn" type="button">Exit</button>
+  </div>
+ </div>
+</aside>
+
+<main class="main">
+ <div class="topbar">
+  <div>
+   <h1 id="pageTitle">Dashboard</h1>
+   <p id="pageSubtitle">Overview of correctional custody records and activities.</p>
+  </div>
+  <div class="top-actions">
+   <button class="btn" id="refreshBtn" type="button">↻ Refresh</button>
+  </div>
+ </div>
+
+ <section class="page active" id="page-dashboard">
+  <div class="grid">
+   <div class="card stat"><div><div class="stat-label">Total Inmates</div><div class="stat-number" id="totalStat">0</div></div><div class="stat-icon">▤</div></div>
+   <div class="card stat"><div><div class="stat-label">Remand</div><div class="stat-number" id="remandStat">0</div></div><div class="stat-icon orange">◷</div></div>
+   <div class="card stat"><div><div class="stat-label">Convicted</div><div class="stat-number" id="convictedStat">0</div></div><div class="stat-icon blue">✓</div></div>
+   <div class="card stat"><div><div class="stat-label">Transferred</div><div class="stat-number" id="transferredStat">0</div></div><div class="stat-icon">⇄</div></div>
+   <div class="card stat"><div><div class="stat-label">Released</div><div class="stat-number" id="releasedStat">0</div></div><div class="stat-icon green">↗</div></div>
+  </div>
+
+  <div class="section-head"><div><h2>Quick Actions</h2><p>Common correctional service operations</p></div></div>
+  <div class="quick-grid">
+   <button class="quick" data-goto="admit"><span>＋</span><strong>Admit Inmate</strong><small>Register a new inmate</small></button>
+   <button class="quick" data-goto="conviction"><span>✓</span><strong>Record Conviction</strong><small>Update sentence information</small></button>
+   <button class="quick" data-goto="transfer"><span>⇄</span><strong>Transfer Inmate</strong><small>Move between facilities</small></button>
+   <button class="quick" data-goto="release"><span>↗</span><strong>Release Inmate</strong><small>Record a release order</small></button>
+  </div>
+
+  <div class="section-head"><div><h2>Recent Inmate Records</h2><p>Latest records in the correctional database</p></div><button class="btn sm" data-goto="records">View all records →</button></div>
+  <div class="panel"><div class="table-wrap"><table><thead><tr><th>Inmate ID</th><th>Full Name</th><th>Case ID</th><th>Facility</th><th>Status</th><th>Action</th></tr></thead><tbody id="recentRows"></tbody></table></div></div>
+ </section>
+
+ <section class="page" id="page-records">
+  <div class="panel">
+   <div class="section-head" style="margin-top:0"><div><h2>Inmate Records</h2><p>Search, filter and view correctional records</p></div><button class="btn primary sm" data-goto="admit">＋ Admit Inmate</button></div>
+   <div class="toolbar">
+    <input id="recordSearch" placeholder="Search ID, name, case or facility...">
+    <select id="statusFilter"><option value="">All statuses</option><option>REMAND</option><option>CONVICTED</option><option>TRANSFERRED</option><option>RELEASED</option></select>
+    <button class="btn sm" id="searchBtn" type="button">Search</button>
+    <button class="btn sm" id="clearSearchBtn" type="button">Clear</button>
+   </div>
+   <div class="table-wrap"><table><thead><tr><th>Inmate ID</th><th>Full Name</th><th>Case ID</th><th>Admission</th><th>Facility</th><th>Status</th><th>Action</th></tr></thead><tbody id="recordRows"></tbody></table></div>
+   <p class="muted" id="recordCount" style="font-size:11px;margin-top:14px"></p>
+  </div>
+ </section>
+
+ <section class="page" id="page-admit">
+  <div class="panel form-card">
+   <h2>Admit New Inmate</h2><p class="intro">Register an individual admitted into the correctional system.</p>
+   <form id="admitForm">
+    <div class="form-grid">
+     <div class="field"><label>Full Name</label><input name="full_name" required placeholder="Enter full name"></div>
+     <div class="field"><label>National ID</label><input name="national_id" required placeholder="Enter national ID"></div>
+     <div class="field"><label>Court Case ID</label><input name="court_case_id" required placeholder="e.g. CRT-2026-0003"></div>
+     <div class="field"><label>Admission Type</label><select name="admission_type" id="admissionType"><option value="REMAND">Remand</option><option value="CONVICTED">Convicted</option></select></div>
+     <div class="field"><label>Correctional Facility</label><input name="facility" required placeholder="Enter facility name"></div>
+     <div class="field" id="admissionSentenceField" style="display:none"><label>Sentence (months)</label><input name="sentence_months" type="number" min="1" placeholder="Number of months"></div>
+    </div>
+    <p class="hint">A sentence duration is required for convicted admissions.</p>
+    <button class="btn primary" type="submit">Save Admission</button>
+   </form>
+  </div>
+ </section>
+
+ <section class="page" id="page-conviction">
+  <div class="panel form-card">
+   <h2>Record Conviction</h2><p class="intro">Update a remand inmate's record following a court conviction.</p>
+   <form id="convictionForm">
+    <div class="field"><label>Inmate ID</label><input name="inmate_id" required placeholder="e.g. INM-0001"></div>
+    <div class="field"><label>Sentence Duration (months)</label><input name="sentence_months" type="number" min="1" required placeholder="Enter sentence duration"></div>
+    <button class="btn primary" type="submit">Update Conviction</button>
+   </form>
+  </div>
+ </section>
+
+ <section class="page" id="page-transfer">
+  <div class="panel form-card">
+   <h2>Transfer Inmate</h2><p class="intro">Record the movement of an inmate to another correctional facility.</p>
+   <form id="transferForm">
+    <div class="field"><label>Inmate ID</label><input name="inmate_id" required placeholder="e.g. INM-0001"></div>
+    <div class="field"><label>New Facility</label><input name="new_facility" required placeholder="Enter destination facility"></div>
+    <div class="field"><label>Reason for Transfer</label><textarea name="reason" placeholder="Enter transfer reason"></textarea></div>
+    <button class="btn primary" type="submit">Record Transfer</button>
+   </form>
+  </div>
+ </section>
+
+ <section class="page" id="page-release">
+  <div class="panel form-card">
+   <h2>Release Inmate</h2><p class="intro">Record an authorised release from correctional custody.</p>
+   <form id="releaseForm">
+    <div class="field"><label>Inmate ID</label><input name="inmate_id" required placeholder="e.g. INM-0001"></div>
+    <div class="field"><label>Release Reason</label><select name="reason" required><option value="">Select reason</option><option value="SENTENCE_COMPLETED">Sentence Completed</option><option value="ACQUITTED">Acquitted</option><option value="COURT_ORDER">Court Order</option><option value="BAIL_GRANTED">Bail Granted</option></select></div>
+    <div class="field"><label>Notes (optional)</label><textarea name="notes" placeholder="Additional release information"></textarea></div>
+    <button class="btn primary" type="submit">Record Release</button>
+   </form>
+  </div>
+ </section>
+
+ <section class="page" id="page-audit">
+  <div class="panel">
+   <div class="section-head" style="margin-top:0"><div><h2>Audit History</h2><p>System activities recorded for accountability</p></div><button class="btn sm" id="auditRefresh" type="button">↻ Refresh</button></div>
+   <div class="table-wrap"><table><thead><tr><th>Date / Time</th><th>Username</th><th>Role</th><th>Action</th><th>Record ID</th></tr></thead><tbody id="auditRows"></tbody></table></div>
+  </div>
+ </section>
+</main>
+</div>
+
+<div class="modal-bg" id="detailModal">
+ <div class="modal">
+  <div class="modal-head"><h2>Inmate Details</h2><button class="close" id="closeModal" type="button">×</button></div>
+  <div id="detailContent"></div>
+ </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+const API = "http://127.0.0.1:8003";
+
+let token = "";
+let currentUser = null;
+let inmates = [];
+let toastTimer;
+
+const $ = id => document.getElementById(id);
+
+function esc(value) {
+ return String(value ?? "").replace(/[&<>"']/g, c => ({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ }[c]));
+}
+
+function notify(message, error=false) {
+ const el=$("toast");
+ el.textContent=message;
+ el.className="toast show"+(error?" error":"");
+ clearTimeout(toastTimer);
+ toastTimer=setTimeout(()=>el.className="toast",3500);
+}
+
+async function api(path, options={}) {
+ const headers={"Content-Type":"application/json",...(options.headers||{})};
+ if(token) headers.Authorization="Bearer "+token;
+
+ const response=await fetch(API+path,{
+  ...options,
+  headers
+ });
+
+ let data={};
+ try {
+  data=await response.json();
+ } catch(e) {
+  data={};
+ }
+
+ if(!response.ok) {
+  throw new Error(data.message || data.detail || ("Request failed: HTTP "+response.status));
+ }
+
+ return data;
+}
+
+function showPage(page) {
+ const target=$("page-"+page);
+ if(!target) return;
+
+ document.querySelectorAll(".page").forEach(el=>el.classList.remove("active"));
+ target.classList.add("active");
+
+ document.querySelectorAll(".nav").forEach(el=>{
+  el.classList.toggle("active",el.dataset.page===page);
+ });
+
+ const titles={
+  dashboard:["Dashboard","Overview of correctional custody records and activities."],
+  records:["Inmate Records","Search, filter and manage inmate records."],
+  admit:["Admit Inmate","Register a new correctional admission."],
+  conviction:["Record Conviction","Update conviction and sentence information."],
+  transfer:["Transfer Inmate","Manage transfers between correctional facilities."],
+  release:["Release Inmate","Record an authorised inmate release."],
+  audit:["Audit History","Review recorded system activities."]
+ };
+
+ $("pageTitle").textContent=titles[page][0];
+ $("pageSubtitle").textContent=titles[page][1];
+
+ if(page==="records") loadInmates();
+ if(page==="audit") loadAudit();
+}
+
+document.querySelectorAll("[data-page]").forEach(btn=>{
+ btn.addEventListener("click",()=>showPage(btn.dataset.page));
+});
+
+document.querySelectorAll("[data-goto]").forEach(btn=>{
+ btn.addEventListener("click",()=>showPage(btn.dataset.goto));
+});
+
+function setRoleAccess() {
+ if(!currentUser) return;
+
+ const role=currentUser.role;
+
+ document.querySelectorAll(".admin-only").forEach(el=>{
+  el.style.display=role==="admin"?"flex":"none";
+ });
+
+ const canTransfer=["correctional_officer","admin"].includes(role);
+
+ const transferNav=document.querySelector('[data-page="transfer"]');
+ const transferQuick=document.querySelector('[data-goto="transfer"]');
+
+ if(transferNav) transferNav.style.display=canTransfer?"flex":"none";
+ if(transferQuick) transferQuick.style.display=canTransfer?"block":"none";
+
+ const canWrite=["court_officer","correctional_officer","admin"].includes(role);
+
+ ["admit","conviction","release"].forEach(page=>{
+  const nav=document.querySelector(`[data-page="${page}"]`);
+  if(nav) nav.style.display=canWrite?"flex":"none";
+ });
+
+ document.querySelectorAll('[data-goto="admit"],[data-goto="conviction"],[data-goto="release"]').forEach(el=>{
+  el.style.display=canWrite?"block":"none";
+ });
+}
+
+/* CORRECTED LOGIN HANDLER */
+$("loginForm").addEventListener("submit", async e => {
+ e.preventDefault();
+
+ const button = $("loginButton");
+ button.disabled = true;
+ $("loginError").textContent = "";
+
+ // Authenticate separately from dashboard initialisation.
+ let result;
+
+ try {
+  result = await api("/auth/login", {
+   method: "POST",
+   body: JSON.stringify({
+    username: $("username").value.trim(),
+    password: $("password").value
+   })
+  });
+
+  if (!result.access_token || !result.username || !result.role) {
+   throw new Error("The login response is incomplete.");
+  }
+
+ } catch (err) {
+  $("loginError").textContent =
+   err.message || "Login failed. Please try again.";
+
+  button.disabled = false;
+  return;
+ }
+
+ // Establish the authenticated session.
+ token = result.access_token;
+
+ currentUser = {
+  username: result.username,
+  role: result.role
+ };
+
+ $("sideUser").textContent = currentUser.username;
+ $("sideRole").textContent = currentUser.role.replace(/_/g, " ");
+ $("avatar").textContent =
+  currentUser.username.charAt(0).toUpperCase();
+
+ // Display the application after successful authentication.
+ $("loginScreen").style.display = "none";
+ $("app").style.display = "flex";
+
+ // Initialise the dashboard without resetting the login session.
+ try {
+  setRoleAccess();
+  showPage("dashboard");
+
+  notify("Welcome, " + currentUser.username + ".");
+
+  await loadInmates();
+
+ } catch (err) {
+  console.error("Dashboard initialisation error:", err);
+
+  notify(
+   "Login successful, but dashboard loading encountered an error: " +
+   err.message,
+   true
+  );
+
+ } finally {
+  button.disabled = false;
+ }
+});
+
+$("logoutBtn").addEventListener("click",()=>{
+ token="";
+ currentUser=null;
+ inmates=[];
+
+ $("app").style.display="none";
+ $("loginScreen").style.display="flex";
+
+ $("password").value="";
+ $("loginError").textContent="";
+});
+
+function statusBadge(status){
+ return `<span class="badge ${esc(status)}">${esc(status)}</span>`;
+}
+
+function recordAction(id){
+ return `<button class="btn sm" onclick="viewInmate('${esc(id)}')">View</button>`;
+}
+
+function renderRows(rows,target,showAdmission=false) {
+ const el=$(target);
+
+ if(!rows.length) {
+  el.innerHTML=`<tr><td colspan="8" class="empty">No inmate records found.</td></tr>`;
+  return;
+ }
+
+ el.innerHTML=rows.map(i=>`
+  <tr>
+   <td><strong>${esc(i.inmate_id)}</strong></td>
+   <td>${esc(i.full_name||"Not provided")}</td>
+   <td>${esc(i.court_case_id)}</td>
+   ${showAdmission?`<td>${esc(i.admission_type)}</td>`:""}
+   <td>${esc(i.facility)}</td>
+   <td>${statusBadge(i.status)}</td>
+   <td>${recordAction(i.inmate_id)}</td>
+  </tr>
+ `).join("");
+}
+
+async function loadInmates() {
+ try {
+  const result=await api("/inmates");
+
+  inmates=result.inmates||[];
+
+  updateDashboard();
+
+  renderRows(inmates.slice(0,5),"recentRows");
+  renderRows(inmates,"recordRows",true);
+
+  $("recordCount").textContent=`Showing ${inmates.length} inmate record(s).`;
+
+ } catch(err) {
+  console.error("Could not load inmate records:",err);
+  notify("Could not load inmate records: "+err.message,true);
+ }
+}
+
+function updateDashboard() {
+ $("totalStat").textContent=inmates.length;
+ $("remandStat").textContent=inmates.filter(i=>i.status==="REMAND").length;
+ $("convictedStat").textContent=inmates.filter(i=>i.status==="CONVICTED").length;
+ $("transferredStat").textContent=inmates.filter(i=>i.status==="TRANSFERRED").length;
+ $("releasedStat").textContent=inmates.filter(i=>i.status==="RELEASED").length;
+}
+
+async function searchInmates(){
+ const search=$("recordSearch").value.trim();
+ const status=$("statusFilter").value;
+
+ const params=new URLSearchParams();
+
+ if(search) params.set("search",search);
+ if(status) params.set("status",status);
+
+ try {
+  const result=await api("/inmates"+(params.toString()?"?"+params.toString():""));
+
+  renderRows(result.inmates||[],"recordRows",true);
+
+  $("recordCount").textContent=`Showing ${result.total||0} matching record(s).`;
+
+ } catch(err) {
+  notify(err.message,true);
+ }
+}
+
+$("searchBtn").addEventListener("click",searchInmates);
+
+$("recordSearch").addEventListener("keydown",e=>{
+ if(e.key==="Enter") searchInmates();
+});
+
+$("statusFilter").addEventListener("change",searchInmates);
+
+$("clearSearchBtn").addEventListener("click",()=>{
+ $("recordSearch").value="";
+ $("statusFilter").value="";
+ loadInmates();
+});
+
+$("refreshBtn").addEventListener("click",loadInmates);
+
+async function viewInmate(id){
+ try {
+  const i=await api("/inmates/"+encodeURIComponent(id));
+
+  const transfers=i.transfers||[];
+  const releases=i.releases||[];
+
+  $("detailContent").innerHTML=`
+   <div class="detail-grid">
+    <div class="detail"><small>Inmate ID</small><strong>${esc(i.inmate_id)}</strong></div>
+    <div class="detail"><small>Full Name</small><strong>${esc(i.full_name||"Not provided")}</strong></div>
+    <div class="detail"><small>National ID</small><strong>${esc(i.national_id)}</strong></div>
+    <div class="detail"><small>Court Case ID</small><strong>${esc(i.court_case_id)}</strong></div>
+    <div class="detail"><small>Admission Type</small><strong>${esc(i.admission_type)}</strong></div>
+    <div class="detail"><small>Current Status</small><strong>${statusBadge(i.status)}</strong></div>
+    <div class="detail"><small>Facility</small><strong>${esc(i.facility)}</strong></div>
+    <div class="detail"><small>Sentence (months)</small><strong>${esc(i.sentence_months??"Not applicable")}</strong></div>
+    <div class="detail"><small>Admitted At</small><strong>${esc(i.admitted_at)}</strong></div>
+    <div class="detail"><small>Released At</small><strong>${esc(i.released_at||"Not released")}</strong></div>
+   </div>
+
+   <div class="section-head"><div><h2>Transfer History</h2></div></div>
+
+   ${transfers.length?transfers.map(t=>`
+    <div class="history">
+     <p><strong>${esc(t.from_facility)}</strong> → <strong>${esc(t.new_facility)}</strong></p>
+     <p class="muted">${esc(t.reason||"No reason supplied")} · ${esc(t.transferred_at)}</p>
+    </div>
+   `).join(""):'<p class="muted">No transfer history recorded.</p>'}
+
+   <div class="section-head"><div><h2>Release History</h2></div></div>
+
+   ${releases.length?releases.map(r=>`
+    <div class="history">
+     <p><strong>${esc(r.reason)}</strong></p>
+     <p class="muted">${esc(r.notes||"No notes")} · ${esc(r.released_at)}</p>
+    </div>
+   `).join(""):'<p class="muted">No release history recorded.</p>'}
+  `;
+
+  $("detailModal").classList.add("show");
+
+ } catch(err) {
+  notify(err.message,true);
+ }
+}
+
+$("closeModal").addEventListener("click",()=>{
+ $("detailModal").classList.remove("show");
+});
+
+$("detailModal").addEventListener("click",e=>{
+ if(e.target===$("detailModal")) {
+  $("detailModal").classList.remove("show");
+ }
+});
+
+$("admissionType").addEventListener("change",e=>{
+ $("admissionSentenceField").style.display=e.target.value==="CONVICTED"?"block":"none";
+});
+
+function formObject(form){
+ return Object.fromEntries(new FormData(form).entries());
+}
+
+$("admitForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+
+ const form=e.target;
+ const data=formObject(form);
+
+ if(data.admission_type==="CONVICTED") {
+  data.sentence_months=Number(data.sentence_months);
+ } else {
+  delete data.sentence_months;
+ }
+
+ if(!data.full_name.trim()) data.full_name=null;
+
+ try {
+  const result=await api("/inmates",{
+   method:"POST",
+   body:JSON.stringify(data)
+  });
+
+  notify("Admission successful. Inmate ID: "+result.inmate_id);
+
+  form.reset();
+  $("admissionSentenceField").style.display="none";
+
+  await loadInmates();
+  showPage("records");
+
+ } catch(err) {
+  notify(err.message,true);
+ }
+});
+
+$("convictionForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+
+ const data=formObject(e.target);
+
+ try {
+  await api("/inmates/"+encodeURIComponent(data.inmate_id.trim())+"/status",{
+   method:"PUT",
+   body:JSON.stringify({
+    status:"CONVICTED",
+    sentence_months:Number(data.sentence_months)
+   })
+  });
+
+  notify("Conviction and sentence updated successfully.");
+
+  e.target.reset();
+
+  await loadInmates();
+  showPage("records");
+
+ } catch(err) {
+  notify(err.message,true);
+ }
+});
+
+$("transferForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+
+ const data=formObject(e.target);
+
+ try {
+  await api("/inmates/"+encodeURIComponent(data.inmate_id.trim())+"/transfer",{
+   method:"PUT",
+   body:JSON.stringify({
+    new_facility:data.new_facility,
+    reason:data.reason||null
+   })
+  });
+
+  notify("Inmate transfer recorded successfully.");
+
+  e.target.reset();
+
+  await loadInmates();
+  showPage("records");
+
+ } catch(err) {
+  notify(err.message,true);
+ }
+});
+
+$("releaseForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+
+ const data=formObject(e.target);
+
+ try {
+  await api("/inmates/"+encodeURIComponent(data.inmate_id.trim())+"/release",{
+   method:"POST",
+   body:JSON.stringify({
+    reason:data.reason,
+    notes:data.notes||null
+   })
+  });
+
+  notify("Inmate release recorded successfully.");
+
+  e.target.reset();
+
+  await loadInmates();
+  showPage("records");
+
+ } catch(err) {
+  notify(err.message,true);
+ }
+});
+
+async function loadAudit(){
+ if(currentUser?.role!=="admin") {
+  notify("Only administrators can view audit history.",true);
+  return;
+ }
+
+ try {
+  const result=await api("/audit-logs?limit=200");
+  const rows=result.logs||[];
+
+  $("auditRows").innerHTML=rows.length?rows.map(log=>`
+   <tr>
+    <td>${esc(log.time)}</td>
+    <td>${esc(log.username)}</td>
+    <td>${esc(log.role)}</td>
+    <td>${esc(log.action)}</td>
+    <td>${esc(log.record_id||"—")}</td>
+   </tr>
+  `).join(""):'<tr><td colspan="5" class="empty">No audit records found.</td></tr>';
+
+ } catch(err) {
+  notify("Could not load audit history: "+err.message,true);
+ }
+}
+
+$("auditRefresh").addEventListener("click",loadAudit);
+
+</script>
+</body>
+</html>
