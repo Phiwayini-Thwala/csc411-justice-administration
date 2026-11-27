@@ -1,0 +1,59 @@
+# Runs on every push and pull request: the unit tests of each service, then the
+# three services together with the Postman collection (Police -> Judiciary -> Correctional).
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install packages
+        run: pip install -r police-service/requirements.txt -r judiciary-service/requirements.txt -r correctional-service/requirements.txt
+      - name: Police service tests
+        working-directory: police-service
+        run: python -m pytest -v
+      - name: Judiciary service tests
+        working-directory: judiciary-service
+        run: python -m pytest -v
+      - name: Correctional service tests
+        working-directory: correctional-service
+        run: python test_flow.py
+
+  end-to-end:
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install packages
+        run: pip install -r police-service/requirements.txt -r judiciary-service/requirements.txt -r correctional-service/requirements.txt
+      - name: Start the three services
+        run: |
+          mkdir -p logs
+          (cd police-service       && nohup python -m uvicorn main:app --port 8001 > ../logs/police.log 2>&1 &)
+          (cd judiciary-service    && nohup python -m uvicorn main:app --port 8002 > ../logs/judiciary.log 2>&1 &)
+          (cd correctional-service && nohup python -m uvicorn main:app --port 8003 > ../logs/correctional.log 2>&1 &)
+          for port in 8001 8002 8003; do
+            for i in $(seq 1 30); do curl -sf http://localhost:$port/ > /dev/null && break; sleep 1; done
+            curl -sf http://localhost:$port/ || (echo "service on $port did not start"; cat logs/*.log; exit 1)
+          done
+      - name: Run the Postman collection
+        run: |
+          npx --yes newman run tests/postman/CSC411_Justice_Flow.postman_collection.json \
+            -e tests/postman/CSC411_Local.postman_environment.json --reporters cli
+      - name: Show service logs
+        if: always()
+        run: tail -n 60 logs/*.log

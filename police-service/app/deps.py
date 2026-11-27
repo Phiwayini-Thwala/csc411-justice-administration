@@ -14,6 +14,10 @@ from .services import AuthService, PoliceService
 # Role matrix for the Police endpoint group (design 6.2 table)
 WRITE_ROLES = ("police_officer", "admin")
 READ_ROLES = ("police_officer", "court_officer", "admin")
+# The Judiciary pushes court news with the token of the user who caused it: a
+# court officer (hearing, bail, remand, verdict) or a correctional officer whose
+# transfer/release the Judiciary is passing on.
+COURT_UPDATE_ROLES = ("court_officer", "correctional_officer", "admin")
 
 
 def get_settings(request: Request) -> Settings:
@@ -33,7 +37,7 @@ def get_repo(db: Session = Depends(get_db)) -> PoliceRepository:
 
 
 def get_police_service(request: Request, repo: PoliceRepository = Depends(get_repo)) -> PoliceService:
-    return PoliceService(repo, request.app.state.judiciary)
+    return PoliceService(repo, request.app.state.judiciary, request.app.state.correctional)
 
 
 def get_auth_service(

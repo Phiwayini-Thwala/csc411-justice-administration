@@ -1,0 +1,11 @@
+{
+  "name": "CSC411 Justice Administration",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "postCreateCommand": "pip install -r police-service/requirements.txt -r judiciary-service/requirements.txt -r correctional-service/requirements.txt",
+  "forwardPorts": [8001, 8002, 8003],
+  "portsAttributes": {
+    "8001": { "label": "Police console (/ui)", "onAutoForward": "notify" },
+    "8002": { "label": "Court console (/ui)", "onAutoForward": "notify" },
+    "8003": { "label": "Custody console (/ui)", "onAutoForward": "notify" }
+  }
+}

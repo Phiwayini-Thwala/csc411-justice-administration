@@ -24,13 +24,14 @@ It is designed to integrate with the Police and Judiciary microservices through 
 ```text
 correctional-service/
 │
-├── auth.py
-├── database.py
-├── main.py
+├── auth.py              JWT validation and role checks
+├── database.py          SQLite schema, demo users and sample inmates
+├── judiciary_client.py  calls to the Judiciary service (custody events, court case reads)
+├── main.py              API endpoints and the /ui route
+├── static/index.html    Custody Console (same design as the Police and Court consoles)
+├── test_flow.py         self-test with the Judiciary mocked
 ├── requirements.txt
-├── test_flow.py
 ├── .env.example
-├── .gitignore
 └── README.md
 ```
 
@@ -92,65 +93,63 @@ The `.env.example` file is provided as a reference. The application does not aut
 
 ## 7. Running the Application
 
-Start the Correctional Service API using:
-
 ```powershell
 uvicorn main:app --port 8003 --reload
 ```
 
-The application will run locally at:
+- Custody Console (web UI): http://127.0.0.1:8003/ui
+- Swagger UI: http://127.0.0.1:8003/docs
 
-```text
-http://127.0.0.1:8003
-```
+Demo users (password `DEMO_PASSWORD`, default `Passw0rd!`): `correctional1`, `court1`, `police1`, `admin1`.
+Two sample inmates match the Police and Judiciary sample cases: `INM-0001` (remand, `CRT-2026-0001`) and `INM-0002` (convicted, `CRT-2026-0002`).
 
-### API Documentation
-
-FastAPI provides interactive API documentation through Swagger UI.
-
-Open the following address in your browser:
-
-```text
-http://127.0.0.1:8003/docs
-```
-
-Swagger UI can be used to view, test, and interact with the available API endpoints.
+| Variable | Purpose | Default |
+|---|---|---|
+| `JWT_SECRET` | shared HS256 secret | shared dev secret (warning logged) |
+| `JUDICIARY_URL` | where transfers and releases are reported | `http://localhost:8002` |
+| `CORRECTIONAL_DB` | database file | `correctional.db` next to `main.py` |
+| `DEMO_PASSWORD` | password for the demo users | `Passw0rd!` |
 
 ## 8. Main Functionalities
 
-The Correctional Service Microservice supports the following operations:
+| Method and path | Roles | What it does |
+|---|---|---|
+| `POST /auth/login` | anyone | JWT with role |
+| `GET /inmates` | all four roles | List and search (`status`, `search`) |
+| `POST /inmates` | court_officer (via Judiciary), correctional_officer, admin | Admit (REMAND or CONVICTED) |
+| `GET /inmates/{id}` | all four roles | Inmate with transfers and releases |
+| `GET /inmates/{id}/linked` | all four roles | The court case, read live from the Judiciary |
+| `PUT /inmates/{id}` | correctional_officer, admin | Correct name or sentence |
+| `PUT /inmates/{id}/status` | court_officer (via Judiciary), correctional_officer, admin | REMAND → CONVICTED |
+| `PUT /inmates/{id}/transfer` | correctional_officer, admin | Move to another facility (reported to the court) |
+| `POST /inmates/{id}/release` | court_officer (via Judiciary), correctional_officer, admin | Release (reported to the court unless the court ordered it) |
+| `POST /inmates/{id}/notify-court` | correctional_officer, admin | Resend the last transfer/release to the court |
+| `GET /audit-logs` | admin | Audit trail (array of `time, username, role, action, record_id`) |
 
-1. **Authentication:** Allows authorized users to access protected API endpoints.
-2. **Inmate Admission:** Records individuals admitted into the correctional system.
-3. **Inmate Status Management:** Supports updates to inmate statuses, including REMAND and CONVICTED.
-4. **Facility Transfers:** Records transfers between correctional facilities.
-5. **Inmate Release:** Supports the release of inmates using authorized release reasons, including court orders.
-6. **Audit Logging:** Records important activities performed within the system for accountability and tracking.
+All errors use `{"error": "...", "message": "..."}`; validation errors are 400.
+`status` follows the contract (`REMAND`, `CONVICTED`, `TRANSFERRED`, `RELEASED`);
+`legal_status` keeps REMAND/CONVICTED after a transfer.
 
 ## 9. Testing
 
-The project includes a test file named `test_flow.py`.
+```powershell
+python test_flow.py
+```
 
-The main workflow tested includes:
-
-- User authentication.
-- Inmate admission.
-- Updating an inmate's status.
-- Transferring an inmate to another correctional facility.
-- Releasing an inmate using a court order.
-- Retrieving audit logs.
+Uses a temporary database and a mocked Judiciary. Covers authentication, roles,
+admission rules, conviction, transfer and release (including the report to the
+court and that court-ordered releases are not echoed back), the linked view and
+the audit log.
 
 ## 10. Integration with Other Microservices
 
-The Correctional Service Microservice forms part of the larger Justice Administration System, which includes:
-
-- Police Service
-- Judiciary Service
-- Correctional Service
-
-It is intended to work with the other services through REST API communication and shared authentication.
-
-Integration testing with the Police and Judiciary microservices will be performed as part of the overall group project.
+- The **Judiciary** admits, convicts and releases inmates here; those calls carry
+  `X-Origin-Service: judiciary`.
+- Transfers and releases done here are sent to the Judiciary
+  (`POST /court-cases/{id}/custody-events`), which records them on the court file
+  and passes them on to the **Police** case. A completed sentence closes the court case.
+- If the Judiciary is down, the change is still saved here and marked
+  `court_sync: FAILED`; **Resend to Court** in the console retries it.
 
 ## 11. Academic Information
 

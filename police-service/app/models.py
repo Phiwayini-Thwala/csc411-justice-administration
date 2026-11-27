@@ -67,7 +67,13 @@ class Case(Base):
     arrest_id: Mapped[str] = mapped_column(ForeignKey("arrests.arrest_id"), unique=True)
     suspect_id: Mapped[str] = mapped_column(ForeignKey("suspects.suspect_id"))
     status: Mapped[str] = mapped_column(String(20), default=CaseStatus.OPEN)
+    summary: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     court_case_id: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)  # set on referral
+    # latest news from the Judiciary (pushed by it, or pulled by GET /cases/{id}/tracking)
+    court_status: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    court_outcome: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    inmate_id: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)      # reference only
+    court_updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     created_by: Mapped[str] = mapped_column(String(50))
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

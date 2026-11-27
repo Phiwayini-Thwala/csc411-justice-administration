@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Eswatini Justice Administration Integration API
-  version: 1.0.0
+  version: 1.1.0
   description: |
     Shared API contract for the CSC411 mini project (Justice administration).
     Three independent services, each with its own database:
@@ -72,6 +72,17 @@ paths:
 
   /suspects:
     servers: [{url: 'http://localhost:8001'}]
+    get:
+      tags: [Police]
+      summary: List suspects (police_officer, court_officer, admin)
+      responses:
+        '200':
+          description: List, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Suspect'}
     post:
       tags: [Police]
       summary: Register a suspect
@@ -114,6 +125,17 @@ paths:
 
   /arrests:
     servers: [{url: 'http://localhost:8001'}]
+    get:
+      tags: [Police]
+      summary: List arrests (police_officer, court_officer, admin)
+      responses:
+        '200':
+          description: List, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Arrest'}
     post:
       tags: [Police]
       summary: Record an arrest for a registered suspect
@@ -135,6 +157,19 @@ paths:
 
   /cases:
     servers: [{url: 'http://localhost:8001'}]
+    get:
+      tags: [Police]
+      summary: List police cases with suspect name and latest court news
+      parameters:
+        - {name: status, in: query, schema: {type: string, enum: [OPEN, REFERRED, CLOSED]}}
+      responses:
+        '200':
+          description: List, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/PoliceCase'}
     post:
       tags: [Police]
       summary: Create a police case from an arrest
@@ -218,6 +253,19 @@ paths:
 
   /court-cases:
     servers: [{url: 'http://localhost:8002'}]
+    get:
+      tags: [Judiciary]
+      summary: List court cases (court_officer, correctional_officer, admin)
+      parameters:
+        - {name: status, in: query, schema: {type: string}}
+      responses:
+        '200':
+          description: All court cases
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/CourtCase'}
     post:
       tags: [Judiciary]
       summary: Receive a case referred by the Police service
@@ -369,6 +417,20 @@ paths:
 
   /inmates:
     servers: [{url: 'http://localhost:8003'}]
+    get:
+      tags: [Correctional]
+      summary: List inmates (every role may read)
+      parameters:
+        - {name: status, in: query, schema: {type: string, enum: [REMAND, CONVICTED, TRANSFERRED, RELEASED]}}
+        - {name: search, in: query, description: 'Matches inmate ID, name, national ID, court case or facility', schema: {type: string}}
+      responses:
+        '200':
+          description: List, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Inmate'}
     post:
       tags: [Correctional]
       summary: Admit an inmate
@@ -475,6 +537,146 @@ paths:
                 $ref: '#/components/schemas/Inmate'
         '409':
           $ref: '#/components/responses/Conflict'
+
+
+  # ---------------------------------------------------------------------
+  # Feedback and live reads between the three databases (version 1.1)
+  # ---------------------------------------------------------------------
+  /cases/{case_id}/court-updates:
+    servers: [{url: 'http://localhost:8001'}]
+    post:
+      tags: [Police]
+      summary: Receive court news (called by the Judiciary service after every court decision)
+      description: |
+        The Judiciary forwards the JWT of the user who caused the change
+        (court_officer, or correctional_officer for a transfer/release it passes on; admin also allowed).
+        When court_status is SENTENCED or CLOSED the police case moves REFERRED -> CLOSED.
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CourtUpdate'}
+      responses:
+        '200':
+          description: Police case updated
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PoliceCase'}
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /cases/{case_id}/tracking:
+    servers: [{url: 'http://localhost:8001'}]
+    get:
+      tags: [Police]
+      summary: Follow a case - the police record plus the live Judiciary and Correctional records
+      description: A service that is down only blanks its own part (court_error / inmate_error).
+      parameters:
+        - $ref: '#/components/parameters/CaseId'
+      responses:
+        '200':
+          description: Case with linked records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  case: {$ref: '#/components/schemas/PoliceCase'}
+                  court_case: {$ref: '#/components/schemas/CourtCase'}
+                  court_error: {type: string, nullable: true}
+                  inmate: {$ref: '#/components/schemas/Inmate'}
+                  inmate_error: {type: string, nullable: true}
+  /court-cases/{court_case_id}/linked:
+    servers: [{url: 'http://localhost:8002'}]
+    get:
+      tags: [Judiciary]
+      summary: The live Police case and Correctional inmate records for this court case
+      parameters:
+        - $ref: '#/components/parameters/CourtCaseId'
+      responses:
+        '200':
+          description: Linked records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  court_case_id: {type: string}
+                  police_case: {$ref: '#/components/schemas/PoliceCase'}
+                  police_error: {type: string, nullable: true}
+                  inmate: {$ref: '#/components/schemas/Inmate'}
+                  inmate_error: {type: string, nullable: true}
+  /court-cases/{court_case_id}/custody-events:
+    servers: [{url: 'http://localhost:8002'}]
+    post:
+      tags: [Judiciary]
+      summary: Receive a transfer or release (called by the Correctional service)
+      description: |
+        Roles allowed - correctional_officer, admin. A release with reason
+        SENTENCE_COMPLETED moves a SENTENCED court case to CLOSED. The change
+        is then passed on to the Police service.
+      parameters:
+        - $ref: '#/components/parameters/CourtCaseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CustodyEvent'}
+      responses:
+        '200':
+          description: Event recorded
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CourtCase'}
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /court-cases/{court_case_id}/notify-police:
+    servers: [{url: 'http://localhost:8002'}]
+    post:
+      tags: [Judiciary]
+      summary: Send the current court status to the Police service again (after it was unreachable)
+      parameters:
+        - $ref: '#/components/parameters/CourtCaseId'
+      responses:
+        '200':
+          description: Result stored in police_sync (OK or FAILED)
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CourtCase'}
+  /inmates/{inmate_id}/linked:
+    servers: [{url: 'http://localhost:8003'}]
+    get:
+      tags: [Correctional]
+      summary: The court case behind this inmate, read live from the Judiciary service
+      parameters:
+        - $ref: '#/components/parameters/InmateId'
+      responses:
+        '200':
+          description: Linked court case
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inmate_id: {type: string}
+                  court_case: {$ref: '#/components/schemas/CourtCase'}
+                  court_error: {type: string, nullable: true}
+  /inmates/{inmate_id}/notify-court:
+    servers: [{url: 'http://localhost:8003'}]
+    post:
+      tags: [Correctional]
+      summary: Send the latest transfer or release to the Judiciary again (after it was unreachable)
+      parameters:
+        - $ref: '#/components/parameters/InmateId'
+      responses:
+        '200':
+          description: Result stored in court_sync (OK or FAILED)
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Inmate'}
 
 components:
   securitySchemes:
@@ -614,9 +816,32 @@ components:
         summary: {type: string}
         status: {type: string, enum: [OPEN, REFERRED, CLOSED]}
         court_case_id: {type: string, nullable: true}
+        court_status: {type: string, nullable: true, description: Latest court case status pushed by the Judiciary}
+        court_outcome: {type: string, nullable: true, example: 'Guilty: imprisonment for 12 months at Matsapha Correctional Centre'}
+        inmate_id: {type: string, nullable: true}
+        court_updated_at: {type: string, format: date-time, nullable: true}
+        suspect_name: {type: string}
+        national_id: {type: string}
         charges:
           type: array
           items: {$ref: '#/components/schemas/Charge'}
+    CourtUpdate:
+      type: object
+      required: [court_case_id, court_status]
+      properties:
+        court_case_id: {type: string, example: CRT-2026-0003}
+        court_status: {type: string, enum: [RECEIVED, HEARING_SCHEDULED, ON_BAIL, ON_REMAND, SENTENCED, CLOSED]}
+        outcome: {type: string, example: Remanded in custody at Matsapha Correctional Centre}
+        inmate_id: {type: string, nullable: true}
+    CustodyEvent:
+      type: object
+      required: [inmate_id, event]
+      properties:
+        inmate_id: {type: string, example: INM-0003}
+        event: {type: string, enum: [TRANSFERRED, RELEASED]}
+        facility: {type: string}
+        reason: {type: string, example: SENTENCE_COMPLETED}
+        notes: {type: string}
     CourtCaseCreate:
       type: object
       required: [police_case_id, suspect, charges]
@@ -676,6 +901,10 @@ components:
           type: array
           items: {$ref: '#/components/schemas/Hearing'}
         inmate_id: {type: string, nullable: true}
+        custody_events:
+          type: array
+          items: {$ref: '#/components/schemas/CustodyEvent'}
+        police_sync: {type: string, enum: [OK, FAILED], nullable: true, description: Result of the last update sent to the Police service}
     InmateAdmit:
       type: object
       required: [national_id, full_name, court_case_id, admission_type, facility]
@@ -698,6 +927,10 @@ components:
         sentence_months: {type: integer, nullable: true}
         admitted_at: {type: string, format: date-time}
         released_at: {type: string, format: date-time, nullable: true}
+        legal_status: {type: string, enum: [REMAND, CONVICTED], description: Kept when status is TRANSFERRED}
+        court_sync: {type: string, enum: [OK, FAILED], nullable: true, description: Result of the last report sent to the Judiciary}
+        transfers: {type: array, items: {type: object}}
+        releases: {type: array, items: {type: object}}
     InmateStatusUpdate:
       type: object
       required: [status]

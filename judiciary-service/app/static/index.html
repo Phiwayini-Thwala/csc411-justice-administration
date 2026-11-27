@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Judiciary – Court Console</title>
+<style>
+:root{
+  --bg:#f4f5f9;--surface:#fff;--surface2:#f0f2f8;--text:#1a1d2e;--muted:#6b7190;--border:#e3e6f0;
+  --brand:#3b3fd8;--brand-d:#2c2fb3;--brand-soft:#ecebff;
+  --ok:#0f9d6b;--ok-s:#dcf5ea;--warn:#c27803;--warn-s:#fdf0d5;--bad:#d63b4b;--bad-s:#fde3e6;--info:#1a73e8;--info-s:#e0edff;--grey-s:#e8eaf2;
+  --shadow:0 1px 3px rgba(20,24,60,.08),0 8px 24px rgba(20,24,60,.06);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f111a;--surface:#181b28;--surface2:#1f2333;--text:#eceefa;--muted:#8d93b3;--border:#2a2f45;
+  --brand:#7377ff;--brand-d:#8e91ff;--brand-soft:#252850;
+  --ok:#35c995;--ok-s:#123428;--warn:#f0b34a;--warn-s:#3a2d10;--bad:#ff6b7b;--bad-s:#3d1a20;--info:#6aa6ff;--info-s:#15294a;--grey-s:#262a3d;
+  --shadow:0 1px 3px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);
+}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px}
+.hidden{display:none!important}
+#app{display:flex;min-height:100vh}
+aside{width:270px;background:var(--surface);border-right:1px solid var(--border);padding:22px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex-shrink:0;overflow-y:auto}
+.logo{display:flex;align-items:center;gap:12px;padding:0 10px 18px}
+.logo .mark{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--brand),#8a5cf6);display:grid;place-items:center;color:#fff;font-size:20px}
+.logo b{display:block;font-size:16px}.logo small{color:var(--muted);font-size:12px}
+.menu-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:14px 12px 6px}
+nav button{width:100%;display:flex;align-items:center;gap:12px;padding:10px 12px;border:0;background:none;color:var(--text);font:inherit;border-radius:10px;cursor:pointer;text-align:left;transition:.15s}
+nav button:hover{background:var(--surface2)}
+nav button.active{background:var(--brand-soft);color:var(--brand);font-weight:600}
+nav .ic{width:22px;text-align:center;font-size:17px}
+.side-foot{margin-top:auto;padding:12px;border-radius:12px;background:var(--surface2);font-size:13px}
+.side-foot .who{font-weight:600}.side-foot .role{color:var(--muted);font-size:12px;margin-bottom:10px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:6px}
+.dot.on{background:var(--ok)}.dot.off{background:var(--bad)}
+main{flex:1;padding:30px 36px;min-width:0}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+h1{font-size:26px;letter-spacing:-.02em}.sub{color:var(--muted);margin-top:4px}
+.btn{border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.15s;background:var(--surface2);color:var(--text)}
+.btn:hover{filter:brightness(.96);transform:translateY(-1px)}
+.btn.primary{background:var(--brand);color:#fff}.btn.primary:hover{background:var(--brand-d)}
+.btn.sm{padding:7px 11px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:var(--shadow)}
+.stat .n{font-size:32px;font-weight:700;letter-spacing:-.02em;margin-top:6px}
+.stat .l{color:var(--muted);font-size:13px;display:flex;gap:8px;align-items:center}
+.stat .bar{height:4px;border-radius:4px;margin-top:12px}
+.qa{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.qa button{text-align:left;padding:18px;border-radius:14px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font:inherit;color:var(--text);transition:.15s;box-shadow:var(--shadow)}
+.qa button:hover{border-color:var(--brand);transform:translateY(-2px)}
+.qa .ic{font-size:24px;display:block;margin-bottom:10px}.qa b{display:block}.qa span.d{color:var(--muted);font-size:13px}
+h2{font-size:17px;margin:26px 0 14px}
+.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+input,select,textarea{font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;width:100%;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.toolbar input{max-width:320px}.toolbar select{max-width:230px}
+.tbl{overflow-x:auto;padding:0}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:14px 16px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:14px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:0}tbody tr:hover{background:var(--surface2)}
+.name{font-weight:600}.mut{color:var(--muted);font-size:13px}
+.badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:600;white-space:nowrap}
+.b-RECEIVED{background:var(--info-s);color:var(--info)}.b-HEARING_SCHEDULED{background:var(--brand-soft);color:var(--brand)}
+.b-ON_BAIL{background:var(--warn-s);color:var(--warn)}.b-ON_REMAND{background:var(--grey-s);color:var(--text)}
+.b-SENTENCED{background:var(--bad-s);color:var(--bad)}.b-CLOSED{background:var(--ok-s);color:var(--ok)}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}.empty .ic{font-size:38px;display:block;margin-bottom:8px}
+.form-card{max-width:680px}
+label{display:block;font-weight:600;font-size:13.5px;margin:16px 0 6px}label:first-child{margin-top:0}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hint{font-size:12.5px;color:var(--muted);margin-top:5px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg label{margin:0;border:1.5px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;font-weight:600;display:flex;gap:10px;align-items:center}
+.seg input{width:auto}.seg label:has(input:checked){border-color:var(--brand);background:var(--brand-soft)}
+.casebox{background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:6px}
+.notice{background:var(--warn-s);color:var(--warn);border-radius:10px;padding:11px 14px;font-size:13.5px;margin-top:14px}
+.modal-bg{position:fixed;inset:0;background:rgba(10,12,30,.55);display:none;place-items:center;z-index:50;padding:20px;backdrop-filter:blur(3px)}
+.modal-bg.open{display:grid}
+.modal{background:var(--surface);border-radius:18px;padding:26px;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.35);max-height:92vh;overflow:auto}
+.modal.wide{max-width:720px}
+.modal h3{font-size:19px;margin-bottom:16px}
+.modal .foot{display:flex;justify-content:flex-end;gap:10px;margin-top:22px;flex-wrap:wrap}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:8px 14px;font-size:14px}.kv dt{color:var(--muted)}
+.sect{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:20px 0 8px}
+.chip{display:inline-block;background:var(--surface2);border-radius:8px;padding:6px 10px;margin:0 6px 6px 0;font-size:13px}
+.timeline{list-style:none}
+.timeline li{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--border)}
+.timeline li:last-child{border:0}
+.tl-ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--brand-soft);flex-shrink:0;font-size:16px}
+.charge-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:8px}
+.toast-wrap{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:10px;z-index:100}
+.toast{background:var(--text);color:var(--bg);padding:13px 18px;border-radius:12px;box-shadow:var(--shadow);font-weight:500;animation:in .25s;max-width:380px}
+.toast.err{background:var(--bad);color:#fff}.toast.ok{background:var(--ok);color:#fff}
+@keyframes in{from{opacity:0;transform:translateY(10px)}}
+/* login */
+#login{min-height:100vh;display:grid;place-items:center;padding:20px;background:linear-gradient(135deg,var(--brand-soft),var(--bg))}
+#login .card{width:100%;max-width:400px;padding:32px}
+#login .mark{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--brand),#8a5cf6);display:grid;place-items:center;color:#fff;font-size:28px;margin-bottom:16px}
+.demo{margin-top:18px;font-size:12.5px;color:var(--muted);background:var(--surface2);border-radius:10px;padding:10px 12px}
+.mobile-bar{display:none}
+@media(max-width:860px){
+  #app{flex-direction:column}
+  aside{position:fixed;left:-290px;z-index:40;transition:.25s;height:100vh}aside.open{left:0}
+  main{padding:20px 16px}.row2{grid-template-columns:1fr}.kv{grid-template-columns:1fr}
+  .mobile-bar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30}
+}
+
+/* ---- shared additions: one look for all three consoles ---- */
+.b-OPEN{background:var(--info-s);color:var(--info)}.b-REFERRED{background:var(--brand-soft);color:var(--brand)}
+.b-REMAND{background:var(--grey-s);color:var(--text)}.b-CONVICTED{background:var(--bad-s);color:var(--bad)}
+.b-TRANSFERRED{background:var(--warn-s);color:var(--warn)}.b-RELEASED{background:var(--ok-s);color:var(--ok)}
+.b-OK{background:var(--ok-s);color:var(--ok)}.b-FAILED{background:var(--bad-s);color:var(--bad)}.b-NONE{background:var(--grey-s);color:var(--muted)}
+.svc-links a{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:10px;color:var(--text);text-decoration:none;font-size:14px;transition:.15s}
+.svc-links a:hover{background:var(--surface2)}.svc-links a.me{color:var(--brand);font-weight:600}
+.svc-links .ic{width:22px;text-align:center;font-size:16px}
+.svc-links .dot{margin:0 0 0 auto}
+.flow{display:flex;align-items:stretch;gap:10px;margin-bottom:24px;flex-wrap:wrap}
+.flow .st{flex:1;min-width:170px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);display:flex;gap:12px;align-items:center}
+.flow .st.me{border-color:var(--brand);background:var(--brand-soft)}
+.flow .st .ic{font-size:24px}.flow .st b{display:block;font-size:14px}.flow .st span{color:var(--muted);font-size:12.5px}
+.flow .ar{display:grid;place-items:center;color:var(--muted);font-size:18px}
+.journey{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.journey .col{background:var(--surface2);border-radius:14px;padding:14px;min-width:0}
+.journey .col h4{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;display:flex;gap:8px;align-items:center}
+.journey .col .kv{grid-template-columns:auto minmax(0,1fr);gap:6px 10px;font-size:13px}.journey .col dd{overflow-wrap:anywhere;min-width:0}
+.journey .err{font-size:13px;color:var(--warn)}
+.progress{height:8px;border-radius:8px;background:var(--grey-s);overflow:hidden;margin-top:8px}.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),#8a5cf6)}
+.syncrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px}
+.steps{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}.steps span{padding:6px 12px;border-radius:99px;background:var(--surface2);font-size:13px;color:var(--muted);font-weight:600}
+.steps span.on{background:var(--brand-soft);color:var(--brand)}
+.form-card h3{font-size:15px;margin:22px 0 2px}.form-card h3:first-child{margin-top:0}
+@media(max-width:860px){.journey{grid-template-columns:1fr}.flow .ar{transform:rotate(90deg);width:100%}}
+.svc-links{margin-bottom:18px}
+
+.grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.form-card .row2>div>label:first-child{margin-top:16px}.form-card>.row2:first-child>div>label:first-child{margin-top:0}
+
+</style>
+</head>
+<body>
+
+<!-- ============ SIGN IN ============ -->
+<div id="login">
+  <div class="card">
+    <div class="mark">⚖️</div>
+    <h1 style="font-size:22px">Court Console</h1>
+    <div class="sub" style="margin-bottom:22px">Sign in to manage court cases</div>
+    <label>Username</label><input id="lu" autocomplete="username" placeholder="e.g. court1">
+    <label>Password</label><input id="lp" type="password" autocomplete="current-password" placeholder="Your password">
+    <button class="btn primary" id="lbtn" style="width:100%;justify-content:center;margin-top:22px">🔐 Sign In</button>
+    <div class="demo">One account works in all three consoles. Use <b>Switch console</b> after signing in to move between Police, Court and Custody without signing in again.</div>
+  </div>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div id="app" class="hidden">
+  <div class="mobile-bar"><button class="btn sm" onclick="document.querySelector('aside').classList.toggle('open')">☰ Menu</button><b>Court Console</b></div>
+  <aside>
+    <div class="logo"><div class="mark">⚖️</div><div><b>Judiciary Service</b><small>Court Case Management</small></div></div>
+    <nav id="nav"></nav>
+    <div class="menu-label">Switch console</div>
+    <div class="svc-links" id="svcLinks"></div>
+    <div class="side-foot">
+      <div class="who" id="who"></div><div class="role" id="role"></div>
+      <div style="margin-bottom:10px"><span class="dot" id="dot"></span><span id="svcStatus">Checking…</span></div>
+      <button class="btn sm" style="width:100%;justify-content:center" onclick="logout()">🚪 Sign Out</button>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+const ME='judiciary';
+/* ===== Shared console core (identical in the Police, Court and Custody consoles) =====
+   Each page defines before this file:  ME  (police | judiciary | correctional)
+   and after it: navItems(), VIEWS, loadFor(view) and its own screens. */
+const $=s=>document.querySelector(s);
+const SVC={
+  police:{port:8001,name:'Police Console',org:'Royal Eswatini Police',icon:'👮',does:'Arrest, charge & refer'},
+  judiciary:{port:8002,name:'Court Console',org:'Judiciary',icon:'⚖️',does:'Hear, decide & sentence'},
+  correctional:{port:8003,name:'Custody Console',org:'Correctional Services',icon:'🏛️',does:'Admit, hold & release'}};
+const ONHTTP=location.protocol.startsWith('http');
+const HOST=ONHTTP?location.hostname:'localhost';
+// Locally the services are localhost:8001-8003. In GitHub Codespaces each port has its
+// own address (name-8001.app.github.dev), so swap the port inside the host name instead.
+const CODESPACE=/-800[123]\./.test(HOST);
+const baseOf=k=>CODESPACE?`https://${HOST.replace(/-800[123]\./,`-${SVC[k].port}.`)}`:`http://${HOST}:${SVC[k].port}`;
+const API=ONHTTP?'':baseOf(ME);
+const SKEY='jas-'+ME;
+let TOKEN=null, USER=null, view='dashboard';
+
+/* ---- labels shared by all consoles (same words for the same status everywhere) ---- */
+const COURT={RECEIVED:'Awaiting Hearing',HEARING_SCHEDULED:'Hearing Scheduled',ON_BAIL:'Out on Bail',ON_REMAND:'Held in Custody',SENTENCED:'Sentenced',CLOSED:'Case Closed'};
+const POLICE={OPEN:'Open Investigation',REFERRED:'Referred to Court',CLOSED:'Case Closed'};
+const CUSTODY={REMAND:'On Remand',CONVICTED:'Serving Sentence',TRANSFERRED:'Transferred',RELEASED:'Released'};
+const RELEASE={SENTENCE_COMPLETED:'Sentence completed',ACQUITTED:'Acquitted by the court',COURT_ORDER:'Court order',BAIL_GRANTED:'Bail granted by the court'};
+const SYNC={OK:'Delivered',FAILED:'Not delivered',NONE:'Nothing sent yet'};
+const roleName=r=>({court_officer:'Court Officer',admin:'Administrator',correctional_officer:'Correctional Officer',police_officer:'Police Officer'}[r]||r);
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const utc=d=>d&&!/(Z|[+-]\d\d:?\d\d)$/.test(d)?d+'Z':d;           // server times are UTC without a zone
+const fmtDate=d=>d?new Date(d).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}):'—';
+const fmtDay=d=>d?new Date(d).toLocaleDateString([], {dateStyle:'medium'}):'—';
+const money=n=>n==null?'—':'E '+Number(n).toLocaleString([], {minimumFractionDigits:2,maximumFractionDigits:2});
+const badge=(s,map)=>s?`<span class="badge b-${esc(s)}">${esc((map||{})[s]||s)}</span>`:'<span class="mut">—</span>';
+const syncBadge=s=>badge(s||'NONE',SYNC);
+const head=(t,s,right='')=>`<div class="topbar"><div><h1>${t}</h1><div class="sub">${s}</div></div><div>${right}</div></div>`;
+const kv=rows=>`<dl class="kv">${rows.filter(r=>r).map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+const emptyBox=(ic,msg,hint='')=>`<div class="empty"><span class="ic">${ic}</span>${msg}${hint?`<div class="hint">${hint}</div>`:''}</div>`;
+
+function toast(msg,type=''){const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;$('#toasts').append(t);setTimeout(()=>t.remove(),5000)}
+
+async function api(path,method='GET',body){
+  const headers={};if(body)headers['Content-Type']='application/json';if(TOKEN)headers.Authorization='Bearer '+TOKEN;
+  let r;try{r=await fetch(API+path,{method,headers,body:body?JSON.stringify(body):undefined})}
+  catch{throw new Error(`Cannot reach the ${SVC[ME].org} service. Is it running on port ${SVC[ME].port}?`)}
+  let data=null;try{data=await r.json()}catch{}
+  if(r.status===401&&TOKEN){logout('Your session has expired. Please sign in again.');throw new Error('Session expired')}
+  if(r.status===403)throw new Error(data?.message||'Your role is not allowed to do this here.');
+  if(!r.ok)throw new Error(data?.message||('Request failed ('+r.status+')'));
+  return data;
+}
+
+/* ---------- Sign in / out (the same accounts work in every console) ---------- */
+async function login(){
+  const username=$('#lu').value.trim(),password=$('#lp').value;
+  if(!username||!password)return toast('Enter your username and password.','err');
+  $('#lbtn').disabled=true;
+  try{
+    const r=await api('/auth/login','POST',{username,password});
+    setSession(r.access_token,{username,role:r.role});start();
+  }catch(e){toast(e.message,'err')}finally{$('#lbtn').disabled=false}
+}
+function setSession(t,u){TOKEN=t;USER=u;try{sessionStorage.setItem(SKEY,JSON.stringify({TOKEN,USER}))}catch{}}
+function logout(msg){
+  TOKEN=null;USER=null;try{sessionStorage.removeItem(SKEY)}catch{}
+  $('#app').classList.add('hidden');$('#login').classList.remove('hidden');$('#lp').value='';
+  if(msg)toast(msg,'err');
+}
+$('#lbtn').onclick=login;$('#lp').onkeydown=e=>{if(e.key==='Enter')login()};
+
+function start(){
+  $('#login').classList.add('hidden');$('#app').classList.remove('hidden');
+  $('#who').textContent=USER.username;$('#role').textContent=roleName(USER.role);
+  const items=navItems();
+  $('#nav').innerHTML=items.map(i=>i.length===1?`<div class="menu-label">${i[0]}</div>`:`<button data-v="${i[0]}"><span class="ic">${i[1]}</span>${i[2]}</button>`).join('');
+  document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>go(b.dataset.v));
+  drawSwitcher();go('dashboard');
+}
+
+/* ---------- Navigation ---------- */
+async function go(v,...args){
+  view=v;
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
+  document.querySelector('aside').classList.remove('open');
+  try{await loadFor(v)}
+  catch(e){if(TOKEN){$('#main').innerHTML=head(SVC[ME].name,'')+`<div class="card">${emptyBox('🚫',esc(e.message))}</div>`}return}
+  VIEWS[v](...args);
+}
+
+/* ---------- Modals ---------- */
+function openModal(html,wide){$('#modal').className='modal'+(wide?' wide':'');$('#modal').innerHTML=html;$('#modalBg').classList.add('open')}
+function closeModal(){$('#modalBg').classList.remove('open')}
+$('#modalBg').onclick=e=>{if(e.target.id==='modalBg')closeModal()};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+async function submit(btn,fn,msg){
+  btn.disabled=true;
+  try{const r=await fn();closeModal();toast(typeof msg==='function'?msg(r):msg,'ok');await go(view);return r}
+  catch(e){toast(e.message,'err');btn.disabled=false}
+}
+
+/* ---------- The process strip: where this console sits in the justice chain ---------- */
+function flowStrip(){
+  const order=['police','judiciary','correctional'];
+  return `<div class="flow">${order.map((k,i)=>`${i?'<div class="ar">⇄</div>':''}<div class="st ${k===ME?'me':''}"><span class="ic">${SVC[k].icon}</span><div><b>${SVC[k].org}</b><span>${SVC[k].does}</span></div></div>`).join('')}</div>`;
+}
+
+/* ---------- Switch console: carry the sign-in across (one shared JWT secret) ---------- */
+function drawSwitcher(){
+  $('#svcLinks').innerHTML=['police','judiciary','correctional'].map(k=>
+    `<a href="#" data-k="${k}" class="${k===ME?'me':''}"><span class="ic">${SVC[k].icon}</span>${SVC[k].name}<span class="dot" id="dot-${k}"></span></a>`).join('');
+  document.querySelectorAll('#svcLinks a').forEach(a=>a.onclick=e=>{
+    e.preventDefault();const k=a.dataset.k;if(k===ME)return;
+    const target=baseOf(k)+'/ui';
+    location.href=TOKEN?`${target}#sso=${encodeURIComponent(TOKEN)}&u=${encodeURIComponent(USER.username)}&r=${encodeURIComponent(USER.role)}`:target;
+  });
+  pingAll();
+}
+function takeSso(){
+  if(!location.hash.startsWith('#sso='))return false;
+  const p=new URLSearchParams(location.hash.slice(1));
+  history.replaceState(null,'',location.pathname+location.search);       // never leave the token in the address bar
+  const t=p.get('sso');
+  try{
+    const claims=JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    if(!claims.exp||claims.exp*1000<Date.now())return false;
+    setSession(t,{username:claims.sub||p.get('u'),role:claims.role||p.get('r')});return true;
+  }catch{return false}
+}
+
+/* ---------- Service status ---------- */
+async function pingOne(k){
+  try{const r=await fetch((k===ME?API:baseOf(k))+'/');if(!r.ok)throw 0;return true}catch{return false}
+}
+async function pingAll(){
+  for(const k of ['police','judiciary','correctional']){
+    const ok=await pingOne(k);const d=$('#dot-'+k);if(d)d.className='dot '+(ok?'on':'off');
+    if(k===ME){$('#dot').className='dot '+(ok?'on':'off');$('#svcStatus').textContent=ok?'Service online':'Service unreachable'}
+  }
+}
+setInterval(pingAll,15000);
+
+/* ---------- Audit (admin) ---------- */
+function auditView(icons,what){
+  $('#main').innerHTML=head('Activity History',`Every action recorded in the ${what} database, newest first.`)+`<div class="card" id="al">Loading…</div>`;
+  api('/audit-logs?limit=200').then(logs=>{
+    $('#al').innerHTML=logs.length?`<ul class="timeline">`+logs.map(l=>{const [i,t]=icons[l.action]||['📝',l.action.replace(/_/g,' ').toLowerCase()];
+      return `<li><div class="tl-ic">${i}</div><div><b>${esc(t)}</b> · ${esc(l.record_id||'')}<div class="mut">${esc(l.username)} (${esc(roleName(l.role))}) · ${fmtDate(utc(l.time||l.timestamp))}</div></div></li>`}).join('')+`</ul>`:
+      emptyBox('🧾','No activity recorded yet.');
+  }).catch(e=>{$('#al').innerHTML=emptyBox('🚫','Could not load history: '+esc(e.message))});
+}
+
+/* ---------- Boot: restore the session after a refresh or a console switch ---------- */
+function boot(){
+  if(takeSso())return start();
+  try{const s=JSON.parse(sessionStorage.getItem(SKEY)||'null');if(s?.TOKEN){TOKEN=s.TOKEN;USER=s.USER;return start()}}catch{}
+  pingAll();
+}
+
+/* ===================== Court Console (Judiciary, port 8002) ===================== */
+let CASES=[], filter={q:'',s:''};
+const STATUS=COURT;
+const OPEN_FOR={ // which statuses allow each action (matches the service rules)
+  schedule:['RECEIVED','HEARING_SCHEDULED','ON_BAIL','ON_REMAND'],
+  bail:['HEARING_SCHEDULED','ON_REMAND'],
+  remand:['HEARING_SCHEDULED','ON_BAIL'],
+  verdict:['HEARING_SCHEDULED','ON_BAIL','ON_REMAND']};
+const canAct=()=>USER&&['court_officer','admin'].includes(USER.role);
+const can=(a,c)=>canAct()&&OPEN_FOR[a].includes(c.status);
+const byId=id=>CASES.find(c=>c.court_case_id===id);
+
+function navItems(){
+  const items=[['Overview'],['dashboard','🏠','Dashboard'],['Cases'],['cases','📁','All Court Cases']];
+  if(canAct())items.push(['register','➕','Receive a Referred Case'],['Court Proceedings'],
+    ['schedule','📅','Schedule a Hearing'],['bail','🔓','Grant Bail'],['remand','🔒','Remand in Custody'],['verdict','🔨','Deliver Verdict & Sentence']);
+  if(USER.role==='admin')items.push(['Records'],['audit','🧾','Activity History']);
+  return items;
+}
+async function loadFor(v){if(v!=='register'&&v!=='audit')CASES=await api('/court-cases')}
+
+/* ---------- Dashboard ---------- */
+function dashboard(){
+  const n=s=>CASES.filter(c=>c.status===s).length;
+  const stats=[['Total Cases',CASES.length,'📁','var(--brand)'],['Awaiting Hearing',n('RECEIVED'),'⏳','var(--info)'],['Hearing Scheduled',n('HEARING_SCHEDULED'),'📅','var(--brand)'],
+    ['Out on Bail',n('ON_BAIL'),'🔓','var(--warn)'],['Held in Custody',n('ON_REMAND'),'🔒','var(--muted)'],['Sentenced',n('SENTENCED'),'🔨','var(--bad)'],['Cases Closed',n('CLOSED'),'✅','var(--ok)']];
+  const recent=[...CASES].reverse().slice(0,5);
+  const unsynced=CASES.filter(c=>c.police_sync==='FAILED').length;
+  const qa=canAct()?`<h2>What would you like to do?</h2><div class="qa">
+    <button onclick="go('schedule')"><span class="ic">📅</span><b>Schedule a Hearing</b><span class="d">Set a trial or hearing date</span></button>
+    <button onclick="go('bail')"><span class="ic">🔓</span><b>Grant Bail</b><span class="d">Release the suspect on conditions</span></button>
+    <button onclick="go('remand')"><span class="ic">🔒</span><b>Remand in Custody</b><span class="d">Hold the suspect at a facility</span></button>
+    <button onclick="go('verdict')"><span class="ic">🔨</span><b>Deliver a Verdict</b><span class="d">Record outcome &amp; sentence</span></button></div>`:'';
+  $('#main').innerHTML=head('Welcome, '+esc(USER.username),'Here is what is happening across the court docket.',
+    canAct()?`<button class="btn primary" onclick="go('register')">➕ Receive a Referred Case</button>`:'')+flowStrip()+
+  `<div class="grid">${stats.map(s=>`<div class="card stat"><div class="l">${s[2]} ${s[0]}</div><div class="n">${s[1]}</div><div class="bar" style="background:${s[3]};opacity:.7"></div></div>`).join('')}</div>
+  ${unsynced?`<div class="notice">⚠️ ${unsynced} case${unsynced>1?'s have':' has'} court news the Police service has not received yet. Open the case file and choose “Resend to Police”.</div>`:''}${qa}
+  <h2>Most Recent Cases</h2><div class="card tbl">${caseTable(recent)}</div>`;
+}
+
+/* ---------- Cases ---------- */
+function caseTable(list){
+  if(!list.length)return emptyBox('📂','No cases to show yet.');
+  return `<table><thead><tr><th>Case</th><th>Suspect</th><th>Charges</th><th>Status</th><th>Next Hearing</th><th>Actions</th></tr></thead><tbody>`+
+  list.map(c=>{
+    const last=c.hearings.length?c.hearings[c.hearings.length-1]:null;
+    return `<tr>
+    <td><div class="name">${esc(c.court_case_id)}</div><div class="mut">Police ref ${esc(c.police_case_id)}</div></td>
+    <td class="name">${esc(c.suspect.full_name)}<div class="mut">ID ${esc(c.suspect.national_id)}</div></td>
+    <td style="max-width:220px">${esc(c.charges.map(x=>x.offence).join(', '))}</td>
+    <td>${badge(c.status,STATUS)}${c.inmate_id?`<div class="mut">Inmate ${esc(c.inmate_id)}</div>`:''}</td>
+    <td>${last?fmtDate(last.hearing_date):'—'}</td>
+    <td><div class="acts">
+      <button class="btn sm" onclick="openCase('${esc(c.court_case_id)}')">📄 View Case File</button>
+      ${can('schedule',c)?`<button class="btn sm" onclick="openSchedule('${esc(c.court_case_id)}')">📅 Schedule Hearing</button>`:''}
+      ${can('bail',c)?`<button class="btn sm" onclick="openBail('${esc(c.court_case_id)}')">🔓 Grant Bail</button>`:''}
+      ${can('remand',c)?`<button class="btn sm" onclick="openRemand('${esc(c.court_case_id)}')">🔒 Remand</button>`:''}
+      ${can('verdict',c)?`<button class="btn sm primary" onclick="openVerdict('${esc(c.court_case_id)}')">🔨 Deliver Verdict</button>`:''}
+    </div></td></tr>`}).join('')+`</tbody></table>`;
+}
+function cases(){
+  $('#main').innerHTML=head('All Court Cases','Search, filter and act on every case in the system.',
+    canAct()?`<button class="btn primary" onclick="go('register')">➕ Receive a Referred Case</button>`:'')+
+  `<div class="toolbar"><input id="q" placeholder="🔍 Search by name, case number or charge…" value="${esc(filter.q)}">
+   <select id="fs"><option value="">All statuses</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${filter.s===k?'selected':''}>${v}</option>`).join('')}</select></div>
+   <div class="card tbl" id="tbl"></div>`;
+  const draw=()=>{
+    filter.q=$('#q').value;filter.s=$('#fs').value;const q=filter.q.toLowerCase();
+    $('#tbl').innerHTML=caseTable(CASES.filter(c=>(!filter.s||c.status===filter.s)&&(!q||[c.court_case_id,c.police_case_id,c.suspect.full_name,c.suspect.national_id,...c.charges.map(x=>x.offence)].join(' ').toLowerCase().includes(q))));
+  };
+  $('#q').oninput=draw;$('#fs').onchange=draw;draw();
+}
+
+/* ---------- Case file (read only) ---------- */
+function describeDecision(d){
+  if(d.kind==='BAIL')return ['🔓','Bail granted',`Bail ${money(d.amount)}. Conditions: ${d.conditions}`];
+  if(d.kind==='REMAND')return ['🔒','Remanded in custody',`${d.reason}. Facility: ${d.facility}. Next hearing ${fmtDate(d.next_hearing_date)}`];
+  const t={IMPRISONMENT:`Imprisonment for ${d.sentence_months} months${d.facility?' at '+d.facility:''}`,FINE:`Fine of ${money(d.fine_amount)}`,SUSPENDED:'Suspended sentence'}[d.sentence_type];
+  return ['🔨',d.verdict==='GUILTY'?'Verdict: Guilty':'Verdict: Not Guilty',d.verdict==='GUILTY'?t:'The suspect was acquitted.'];
+}
+function describeCustody(e){
+  if(e.event==='TRANSFERRED')return ['🚐','Transferred by Correctional Services',`Now held at ${e.facility||'—'}${e.reason?'. Reason: '+e.reason:''}`];
+  return ['🚪','Released by Correctional Services',`${RELEASE[e.reason]||e.reason||'Released'}${e.notes?'. '+e.notes:''}`];
+}
+function openCase(id){
+  const c=byId(id),s=c.suspect;
+  openModal(`<h3>📄 Case File ${esc(c.court_case_id)} ${badge(c.status,STATUS)}</h3>
+  <div class="sect">Suspect</div>
+  <dl class="kv"><dt>Full name</dt><dd>${esc(s.full_name)}</dd><dt>National ID</dt><dd>${esc(s.national_id)}</dd>
+  <dt>Date of birth</dt><dd>${fmtDay(s.date_of_birth)}</dd><dt>Gender</dt><dd>${esc(s.gender||'—')}</dd>
+  <dt>Address</dt><dd>${esc(s.address||'—')}</dd><dt>Police case</dt><dd>${esc(c.police_case_id)}</dd>
+  <dt>Inmate number</dt><dd>${esc(c.inmate_id||'Not in custody')}</dd>${c.summary?`<dt>Summary</dt><dd>${esc(c.summary)}</dd>`:''}</dl>
+  <div class="sect">Charges</div>${c.charges.map(x=>`<span class="chip"><b>${esc(x.offence)}</b>${x.statute?' · '+esc(x.statute):''}</span>`).join('')}
+  <div class="sect">Hearings</div>${c.hearings.length?c.hearings.map(h=>`<div class="casebox" style="margin-bottom:8px"><b>${fmtDate(h.hearing_date)}</b> · ${esc(h.court_name)}<div class="mut">${esc(h.presiding_officer||'')} ${esc(h.hearing_id)}</div></div>`).join(''):'<div class="mut">No hearings scheduled yet.</div>'}
+  <div class="sect">Court Decisions &amp; Custody</div>${(c.decisions.length||c.custody_events.length)?`<ul class="timeline">`+
+    [...c.decisions.map(d=>({t:d.decided_at,by:d.decided_by,x:describeDecision(d)})),...c.custody_events.map(e=>({t:e.recorded_at,by:e.recorded_by,x:describeCustody(e)}))]
+    .sort((a,b)=>a.t<b.t?-1:1).map(({t,by,x})=>`<li><div class="tl-ic">${x[0]}</div><div><b>${x[1]}</b><div>${esc(x[2])}</div><div class="mut">${esc(by)} · ${fmtDate(utc(t))}</div></div></li>`).join('')+`</ul>`:'<div class="mut">No decisions recorded yet.</div>'}
+  <div class="sect">Reported to the Police service</div>
+  <div class="syncrow">${syncBadge(c.police_sync)}<span class="mut">${esc(c.police_sync_message||'The Police case is updated after every court decision.')}</span>
+   ${canAct()?`<button class="btn sm" id="rs">📨 Resend to Police</button>`:''}</div>
+  <div class="sect">Linked records in the other services</div><div id="linked" class="journey"><div class="col mut">Loading live records…</div></div>
+  <div class="foot">${can('schedule',c)?`<button class="btn" onclick="openSchedule('${esc(id)}')">📅 Schedule Hearing</button>`:''}
+  ${can('bail',c)?`<button class="btn" onclick="openBail('${esc(id)}')">🔓 Grant Bail</button>`:''}
+  ${can('remand',c)?`<button class="btn" onclick="openRemand('${esc(id)}')">🔒 Remand</button>`:''}
+  ${can('verdict',c)?`<button class="btn primary" onclick="openVerdict('${esc(id)}')">🔨 Deliver Verdict</button>`:''}
+  <button class="btn" onclick="closeModal()">Close</button></div>`,true);
+  if($('#rs'))$('#rs').onclick=()=>submit($('#rs'),()=>api(`/court-cases/${id}/notify-police`,'POST'),r=>r.police_sync==='OK'?'Police case updated.':'Police service still not reachable.');
+  api(`/court-cases/${id}/linked`).then(l=>{
+    const p=l.police_case,i=l.inmate;
+    $('#linked').innerHTML=`<div class="col"><h4>👮 Police case</h4>${p?kv([['Case',esc(p.case_id)],['Status',badge(p.status,POLICE)],['Arrest',esc(p.arrest_id)],['Opened',fmtDay(utc(p.created_at))],['Court news',p.court_status?badge(p.court_status,COURT):'—']]):`<div class="err">${esc(l.police_error||'Not available')}</div>`}</div>
+     <div class="col"><h4>⚖️ This court case</h4>${kv([['Case',esc(c.court_case_id)],['Status',badge(c.status,STATUS)],['Hearings',c.hearings.length],['Decisions',c.decisions.length]])}</div>
+     <div class="col"><h4>🏛️ Custody record</h4>${i?kv([['Inmate',esc(i.inmate_id)],['Status',badge(i.status,CUSTODY)],['Facility',esc(i.facility)],['Sentence',i.sentence_months?i.sentence_months+' months':'—'],['Admitted',fmtDay(utc(i.admitted_at))]]):`<div class="${c.inmate_id?'err':'mut'}">${esc(l.inmate_error||'The suspect has not been taken into custody.')}</div>`}</div>`;
+  }).catch(e=>{$('#linked').innerHTML=`<div class="col err">${esc(e.message)}</div>`});
+}
+
+/* ---------- Receive a referred case ---------- */
+function chargeRow(){return `<div class="charge-row"><input class="co" placeholder="Offence (e.g. Theft)"><input class="cs" placeholder="Statute (e.g. Theft Act s.4)"><button class="btn sm" type="button" onclick="this.parentElement.remove()">✖</button></div>`}
+function register(){
+  $('#main').innerHTML=head('Receive a Referred Case','Normally the Police service sends cases here automatically. Use this form to capture a case manually.')+
+  `<div class="card form-card">
+    <div class="row2"><div><label>Police Case Reference</label><input id="pc" placeholder="e.g. CASE-2026-0007"></div>
+    <div><label>Suspect's National ID</label><input id="ni" placeholder="e.g. 8001015800083"></div></div>
+    <div class="row2"><div><label>Suspect's Full Name</label><input id="fn" placeholder="e.g. Thandi Dlamini"></div>
+    <div><label>Date of Birth</label><input id="dob" type="date"></div></div>
+    <div class="row2"><div><label>Gender</label><select id="gd"><option value="">Not stated</option><option>male</option><option>female</option><option>other</option></select></div>
+    <div><label>Address</label><input id="ad" placeholder="Where the suspect lives"></div></div>
+    <label>Case Summary</label><textarea id="sm" rows="2" placeholder="Short description of the case"></textarea>
+    <label>Charges</label><div id="charges">${chargeRow()}</div>
+    <button class="btn sm" type="button" onclick="document.getElementById('charges').insertAdjacentHTML('beforeend',chargeRow())">➕ Add Another Charge</button>
+    <div class="hint">The case starts with the status “Awaiting Hearing”.</div>
+    <div style="margin-top:22px;display:flex;gap:10px"><button class="btn primary" id="sv">💾 Save Case File</button><button class="btn" onclick="go('cases')">Cancel</button></div>
+  </div>`;
+  $('#sv').onclick=async()=>{
+    const charges=[...document.querySelectorAll('.charge-row')].map(r=>({offence:r.querySelector('.co').value.trim(),statute:r.querySelector('.cs').value.trim()||null})).filter(c=>c.offence);
+    const body={police_case_id:$('#pc').value.trim(),summary:$('#sm').value.trim()||null,charges,
+      suspect:{national_id:$('#ni').value.trim(),full_name:$('#fn').value.trim(),date_of_birth:$('#dob').value,gender:$('#gd').value||null,address:$('#ad').value.trim()||null}};
+    if(!body.police_case_id||!body.suspect.national_id||!body.suspect.full_name||!body.suspect.date_of_birth)return toast('Please fill in the case reference, national ID, name and date of birth.','err');
+    if(!charges.length)return toast('Add at least one charge.','err');
+    try{const r=await api('/court-cases','POST',body);toast('Case '+r.court_case_id+' received.','ok');go('cases')}catch(e){toast(e.message,'err')}
+  };
+}
+
+/* ---------- Menu pickers ---------- */
+const PK={
+  schedule:['Schedule a Hearing','Choose a case, then set its hearing date.','📅 Schedule Hearing','openSchedule'],
+  bail:['Grant Bail','Choose a case to release the suspect on bail. A suspect in custody will be released by the Correctional Service.','🔓 Grant Bail','openBail'],
+  remand:['Remand in Custody','Choose a case to hold the suspect at a correctional facility until the next hearing.','🔒 Remand','openRemand'],
+  verdict:['Deliver Verdict & Sentence','Choose a case to record the trial outcome.','🔨 Deliver Verdict','openVerdict']};
+function picker(k){
+  const [t,s,label,fn]=PK[k];const list=CASES.filter(c=>can(k,c));
+  $('#main').innerHTML=head(t,s)+`<div class="card tbl">${list.length?`<table><thead><tr><th>Case</th><th>Suspect</th><th>Status</th><th></th></tr></thead><tbody>`+
+   list.map(c=>`<tr><td class="name">${esc(c.court_case_id)}</td><td>${esc(c.suspect.full_name)}<div class="mut">${esc(c.charges.map(x=>x.offence).join(', '))}</div></td><td>${badge(c.status,STATUS)}</td>
+   <td style="text-align:right"><button class="btn primary sm" onclick="${fn}('${esc(c.court_case_id)}')">${label}</button></td></tr>`).join('')+`</tbody></table>`:
+   emptyBox('🎉','No cases are ready for this step.',k!=='schedule'?'A hearing must be scheduled first.':'')}</div>`;
+}
+
+const caseBox=c=>`<div class="casebox"><b>${esc(c.court_case_id)}</b> — ${esc(c.suspect.full_name)} ${badge(c.status,STATUS)}<div class="mut">${esc(c.charges.map(x=>x.offence).join(', '))}</div></div>`;
+const FAC='Matsapha Correctional Centre';
+
+function openSchedule(id){
+  const c=byId(id);
+  openModal(`<h3>📅 Schedule a Hearing</h3>${caseBox(c)}
+   <label>Hearing date &amp; time</label><input type="datetime-local" id="hd">
+   <div class="row2"><div><label>Court</label><input id="cn" value="Manzini Magistrate Court"></div><div><label>Presiding officer</label><input id="po" placeholder="e.g. Magistrate Simelane"></div></div>
+   ${c.status==='RECEIVED'?'<div class="hint">The case will move to “Hearing Scheduled”. The Police service is told automatically.</div>':''}
+   <div class="foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="ok">Confirm Hearing</button></div>`);
+  $('#ok').onclick=()=>{const v=$('#hd').value,cn=$('#cn').value.trim();if(!v||!cn)return toast('Pick a date and enter the court name.','err');
+    submit($('#ok'),()=>api(`/court-cases/${id}/hearings`,'POST',{hearing_date:v,court_name:cn,presiding_officer:$('#po').value.trim()||null}),'Hearing scheduled for '+fmtDate(v)+'.')};
+}
+function openBail(id){
+  const c=byId(id);
+  openModal(`<h3>🔓 Grant Bail</h3>${caseBox(c)}
+   <div class="row2"><div><label>Bail amount (E)</label><input type="number" id="ba" min="0" step="0.01" placeholder="e.g. 2000"></div></div>
+   <label>Bail conditions</label><textarea id="bc" rows="3" placeholder="e.g. Report to the police station every Friday"></textarea>
+   ${c.status==='ON_REMAND'?'<div class="notice">⚠️ The suspect is in custody. Granting bail will order the Correctional Service to release them.</div>':''}
+   <div class="foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="ok">Grant Bail</button></div>`);
+  $('#ok').onclick=()=>{const a=$('#ba').value,cd=$('#bc').value.trim();if(a===''||!cd)return toast('Enter the bail amount and conditions.','err');
+    submit($('#ok'),()=>api(`/court-cases/${id}/bail`,'POST',{amount:parseFloat(a),conditions:cd}),'Bail granted.')};
+}
+function openRemand(id){
+  const c=byId(id);
+  openModal(`<h3>🔒 Remand in Custody</h3>${caseBox(c)}
+   <label>Reason for remand</label><input id="rr" placeholder="e.g. Risk of absconding">
+   <div class="row2"><div><label>Correctional facility</label><input id="rf" value="${FAC}"></div><div><label>Next hearing</label><input type="datetime-local" id="rn"></div></div>
+   <div class="notice">⚠️ The Correctional Service will be asked to admit the suspect. If it cannot, nothing is saved and you can try again.</div>
+   <div class="foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="ok">Remand Suspect</button></div>`);
+  $('#ok').onclick=()=>{const r=$('#rr').value.trim(),f=$('#rf').value.trim(),n=$('#rn').value;if(!r||!f||!n)return toast('Fill in the reason, facility and next hearing.','err');
+    submit($('#ok'),()=>api(`/court-cases/${id}/remand`,'POST',{reason:r,facility:f,next_hearing_date:n}),r=>'Suspect remanded in custody as inmate '+r.inmate_id+'.')};
+}
+function openVerdict(id){
+  const c=byId(id),onRemand=c.status==='ON_REMAND';
+  openModal(`<h3>🔨 Deliver Verdict &amp; Sentence</h3>${caseBox(c)}
+   <label>Verdict</label>
+   <div class="seg"><label><input type="radio" name="v" value="GUILTY" checked> ⚖️ Guilty</label><label><input type="radio" name="v" value="NOT_GUILTY"> ✅ Not Guilty</label></div>
+   <div id="gw"><label>Sentence</label><select id="st"><option value="IMPRISONMENT">Imprisonment</option><option value="FINE">Fine</option><option value="SUSPENDED">Suspended sentence</option></select>
+    <div id="imp"><div class="row2"><div><label>Term (months)</label><input type="number" id="sm" min="1" placeholder="e.g. 12"></div>
+    <div><label>Facility${onRemand?' (optional)':''}</label><input id="sf" value="${FAC}"></div></div></div>
+    <div id="fine" class="hidden"><label>Fine amount (E)</label><input type="number" id="fa" min="0" step="0.01" placeholder="e.g. 500"></div></div>
+   <div class="notice" id="nt"></div>
+   <div class="foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="ok">Confirm Verdict</button></div>`);
+  const sync=()=>{
+    const v=document.querySelector('[name=v]:checked').value,st=$('#st').value;
+    $('#gw').classList.toggle('hidden',v!=='GUILTY');$('#imp').classList.toggle('hidden',st!=='IMPRISONMENT');$('#fine').classList.toggle('hidden',st!=='FINE');
+    $('#nt').textContent=
+      v==='NOT_GUILTY'?(onRemand?'⚠️ The suspect will be acquitted and released from custody by the Correctional Service.':'The suspect will be acquitted and the case closed.'):
+      st==='IMPRISONMENT'?(onRemand?'⚠️ The inmate on remand will be updated to convicted with this sentence.':'⚠️ The suspect will be admitted to the Correctional Service as convicted.'):
+      (onRemand?'⚠️ The suspect will be released from custody and the case closed.':'The case will be closed.');
+    $('#nt').textContent+=' The Police case will be closed automatically.';
+  };
+  document.querySelectorAll('[name=v]').forEach(r=>r.onchange=sync);$('#st').onchange=sync;sync();
+  $('#ok').onclick=()=>{
+    const v=document.querySelector('[name=v]:checked').value,st=$('#st').value;let body={verdict:v};
+    if(v==='GUILTY'){
+      body.sentence_type=st;
+      if(st==='IMPRISONMENT'){const m=parseInt($('#sm').value);if(!m||m<1)return toast('Enter the term in months.','err');
+        body.sentence_months=m;const f=$('#sf').value.trim();if(!onRemand&&!f)return toast('Enter the facility.','err');if(f)body.facility=f}
+      if(st==='FINE'){const a=$('#fa').value;if(a==='')return toast('Enter the fine amount.','err');body.fine_amount=parseFloat(a)}
+    }
+    submit($('#ok'),()=>api(`/court-cases/${id}/verdict`,'POST',body),v==='NOT_GUILTY'?'Suspect acquitted. Case closed.':'Verdict recorded.');
+  };
+}
+
+/* ---------- Audit (admin) ---------- */
+const AICON={COURT_CASE_RECEIVED:['➕','Case received'],HEARING_SCHEDULED:['📅','Hearing scheduled'],BAIL_GRANTED:['🔓','Bail granted'],REMAND_ORDERED:['🔒','Remand ordered'],VERDICT_RECORDED:['🔨','Verdict recorded'],
+  POLICE_NOTIFIED:['📨','Police case updated'],CUSTODY_TRANSFERRED:['🚐','Transfer reported by Correctional'],CUSTODY_RELEASED:['🚪','Release reported by Correctional']};
+
+const VIEWS={dashboard,cases,register,schedule:()=>picker('schedule'),bail:()=>picker('bail'),remand:()=>picker('remand'),verdict:()=>picker('verdict'),audit:()=>auditView(AICON,'court')};
+
+boot();
+</script>
+</body>
+</html>

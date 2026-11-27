@@ -1093,6 +1093,36 @@
           }
         },
         {
+          "name": "7b Police: court news arrived (Judiciary -> Police)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"police copy shows ON_REMAND\", () => pm.expect(pm.response.json().court_status).to.eql(\"ON_REMAND\"));",
+                  "pm.test(\"police copy knows the inmate\", () => pm.expect(pm.response.json().inmate_id).to.eql(pm.collectionVariables.get(\"flow_inmate\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_police}}"
+              }
+            ],
+            "url": "{{police_url}}/cases/{{case_id}}"
+          }
+        },
+        {
           "name": "8 Correctional: inmate is on remand",
           "event": [
             {
@@ -1265,14 +1295,47 @@
           }
         },
         {
-          "name": "13 Police: view case status",
+          "name": "12b Judiciary: transfer and release reported back (Correctional -> Judiciary)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"court case CLOSED after the sentence was served\", () => pm.expect(pm.response.json().status).to.eql(\"CLOSED\"));",
+                  "pm.test(\"transfer and release recorded\", () => pm.expect(pm.response.json().custody_events.map(e => e.event)).to.eql([\"TRANSFERRED\", \"RELEASED\"]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_court}}"
+              }
+            ],
+            "url": "{{judiciary_url}}/court-cases/{{flow_court_case}}"
+          }
+        },
+        {
+          "name": "13 Police: case closed with the final outcome (Judiciary -> Police)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"police case CLOSED\", () => pm.expect(pm.response.json().status).to.eql(\"CLOSED\"));",
+                  "pm.test(\"court status CLOSED\", () => pm.expect(pm.response.json().court_status).to.eql(\"CLOSED\"));",
+                  "pm.test(\"outcome says the sentence was completed\", () => pm.expect(pm.response.json().court_outcome).to.include(\"Sentence completed\"));"
                 ]
               }
             }
@@ -1290,6 +1353,36 @@
               }
             ],
             "url": "{{police_url}}/cases/{{case_id}}"
+          }
+        },
+        {
+          "name": "14 Police: track the case across all three services",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"court record read live\", () => pm.expect(pm.response.json().court_case.court_case_id).to.eql(pm.collectionVariables.get(\"flow_court_case\")));",
+                  "pm.test(\"custody record read live\", () => pm.expect(pm.response.json().inmate.status).to.eql(\"RELEASED\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tok_police}}"
+              }
+            ],
+            "url": "{{police_url}}/cases/{{case_id}}/tracking"
           }
         }
       ]

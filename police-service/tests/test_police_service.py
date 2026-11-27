@@ -242,3 +242,64 @@ def test_audit_log_records_every_create_update_and_referral(client, officer, adm
 def test_records_store_who_and_when(client, officer, open_case):
     sus = client.get("/suspects/SUS-0001", headers=officer).json()
     assert sus["created_by"] == "officer1" and sus["created_at"]
+
+
+
+# ---------------- lists, court feedback and tracking ----------------
+
+def test_lists_are_readable_by_police_and_court(client, officer, court, correctional, open_case):
+    for path in ("/suspects", "/arrests", "/cases"):
+        r = client.get(path, headers=officer)
+        assert r.status_code == 200 and len(r.json()) == 1, path
+        assert client.get(path, headers=court).status_code == 200
+        assert client.get(path, headers=correctional).status_code == 403
+    case = client.get("/cases", headers=officer).json()[0]
+    assert case["suspect_name"] == "Sipho Dlamini" and case["national_id"] == "8001015800083"
+
+
+def test_login_returns_role(client):
+    r = client.post("/auth/login", json={"username": "officer1", "password": PASSWORD})
+    assert r.json()["role"] == "police_officer" and r.json()["username"] == "officer1"
+
+
+def test_court_update_closes_case_after_verdict(client, officer, court, open_case):
+    ref = client.post(f"/cases/{open_case}/refer", headers=officer).json()
+    crt = ref["court_case_id"]
+    # police officers cannot fake court news
+    upd = {"court_case_id": crt, "court_status": "ON_REMAND", "outcome": "Remanded", "inmate_id": "INM-0007"}
+    assert client.post(f"/cases/{open_case}/court-updates", json=upd, headers=officer).status_code == 403
+    r = client.post(f"/cases/{open_case}/court-updates", json=upd, headers=court)
+    assert r.status_code == 200
+    assert r.json()["status"] == "REFERRED" and r.json()["court_status"] == "ON_REMAND"
+    assert r.json()["inmate_id"] == "INM-0007"
+    r = client.post(f"/cases/{open_case}/court-updates",
+                    json={"court_case_id": crt, "court_status": "SENTENCED", "outcome": "Guilty: 12 months"},
+                    headers=court)
+    assert r.json()["status"] == "CLOSED" and r.json()["court_outcome"] == "Guilty: 12 months"
+    # wrong court case id is refused
+    bad = {"court_case_id": "CRT-1999-0001", "court_status": "CLOSED"}
+    assert client.post(f"/cases/{open_case}/court-updates", json=bad, headers=court).status_code == 409
+
+
+def test_court_update_on_open_case_is_409(client, court, open_case):
+    upd = {"court_case_id": "CRT-2026-0001", "court_status": "RECEIVED"}
+    assert client.post(f"/cases/{open_case}/court-updates", json=upd, headers=court).status_code == 409
+
+
+def test_tracking_reads_the_judiciary_and_stores_its_status(client, officer, judiciary, open_case):
+    client.post(f"/cases/{open_case}/refer", headers=officer)
+    r = client.get(f"/cases/{open_case}/tracking", headers=officer)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["court_case"]["status"] == "ON_REMAND"
+    assert body["case"]["court_status"] == "ON_REMAND" and body["case"]["inmate_id"] == "INM-0042"
+    assert judiciary.calls[-1]["method"] == "GET"
+    # the Correctional service is not running in the tests: only that part is blank
+    assert body["inmate"] is None and body["inmate_error"]
+
+
+def test_tracking_survives_judiciary_outage(client, officer, judiciary, open_case):
+    client.post(f"/cases/{open_case}/refer", headers=officer)
+    judiciary.mode = "down"
+    r = client.get(f"/cases/{open_case}/tracking", headers=officer)
+    assert r.status_code == 200 and r.json()["court_error"] and r.json()["case"]["status"] == "REFERRED"

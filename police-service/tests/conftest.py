@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.config import Settings
-from app.judiciary_client import JudiciaryClient
+from app.judiciary_client import CorrectionalClient, JudiciaryClient
 from app.main import create_app
 
 SECRET = "test-secret-not-for-production-use-0123456789"
@@ -39,6 +39,9 @@ class FakeJudiciary:
             return httpx.Response(500, json={"error": "INTERNAL_ERROR", "message": "boom"})
         if self.mode == "bad_body":
             return httpx.Response(201, json={"unexpected": True})
+        if request.method == "GET":          # tracking reads the court case
+            cid = request.url.path.rsplit("/", 1)[-1]
+            return httpx.Response(200, json={"court_case_id": cid, "status": "ON_REMAND", "inmate_id": "INM-0042"})
         self.counter += 1
         return httpx.Response(201, json={"court_case_id": f"CRT-2026-{self.counter:04d}"})
 
@@ -60,7 +63,13 @@ def client(judiciary):
     jc = JudiciaryClient(
         "http://judiciary.test", client=httpx.Client(transport=httpx.MockTransport(judiciary.handler))
     )
-    with TestClient(create_app(settings, jc)) as c:
+    def correctional_down(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused")
+
+    cc = CorrectionalClient(
+        "http://correctional.test", client=httpx.Client(transport=httpx.MockTransport(correctional_down))
+    )
+    with TestClient(create_app(settings, jc, cc)) as c:
         yield c
 
 

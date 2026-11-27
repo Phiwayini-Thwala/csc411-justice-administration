@@ -1,10 +1,13 @@
 """Router layer for suspects, arrests, cases, charges and referral.
 Endpoints only validate input, check the role and call the service layer."""
+from typing import Optional
+
 from fastapi import APIRouter, Depends
 
-from ..deps import READ_ROLES, WRITE_ROLES, get_police_service, require_roles
+from ..deps import COURT_UPDATE_ROLES, READ_ROLES, WRITE_ROLES, get_police_service, require_roles
 from ..schemas import (
-    ArrestCreate, ArrestOut, CaseCreate, CaseOut, ChargeCreate, ChargeOut, SuspectCreate, SuspectOut,
+    ArrestCreate, ArrestOut, CaseCreate, CaseOut, CaseTracking, ChargeCreate, ChargeOut, CourtUpdate,
+    SuspectCreate, SuspectOut,
 )
 from ..security import Principal
 from ..services import PoliceService
@@ -13,6 +16,14 @@ router = APIRouter(tags=["police"])
 
 writer = require_roles(*WRITE_ROLES)
 reader = require_roles(*READ_ROLES)
+
+
+@router.get("/suspects", response_model=list[SuspectOut], summary="List suspects (newest first)")
+def list_suspects(
+    who: Principal = Depends(reader),
+    service: PoliceService = Depends(get_police_service),
+):
+    return service.list_suspects()
 
 
 @router.post("/suspects", response_model=SuspectOut, status_code=201)
@@ -33,6 +44,14 @@ def get_suspect(
     return service.get_suspect(suspect_id)
 
 
+@router.get("/arrests", response_model=list[ArrestOut], summary="List arrests (newest first)")
+def list_arrests(
+    who: Principal = Depends(reader),
+    service: PoliceService = Depends(get_police_service),
+):
+    return service.list_arrests()
+
+
 @router.post("/arrests", response_model=ArrestOut, status_code=201)
 def create_arrest(
     body: ArrestCreate,
@@ -42,13 +61,22 @@ def create_arrest(
     return service.record_arrest(body, who)
 
 
+@router.get("/cases", response_model=list[CaseOut], summary="List cases with suspect names (newest first)")
+def list_cases(
+    status: Optional[str] = None,
+    who: Principal = Depends(reader),
+    service: PoliceService = Depends(get_police_service),
+):
+    return service.list_cases(status)
+
+
 @router.post("/cases", response_model=CaseOut, status_code=201)
 def create_case(
     body: CaseCreate,
     who: Principal = Depends(writer),
     service: PoliceService = Depends(get_police_service),
 ):
-    return service.create_case(body.arrest_id, who)
+    return service.case_out(service.create_case(body.arrest_id, who, body.summary))
 
 
 @router.get("/cases/{case_id}", response_model=CaseOut)
@@ -57,7 +85,7 @@ def get_case(
     who: Principal = Depends(reader),
     service: PoliceService = Depends(get_police_service),
 ):
-    return service.get_case(case_id)
+    return service.case_out(service.get_case(case_id))
 
 
 @router.post("/cases/{case_id}/charges", response_model=ChargeOut, status_code=201)
@@ -76,4 +104,25 @@ def refer_case(
     who: Principal = Depends(writer),
     service: PoliceService = Depends(get_police_service),
 ):
-    return service.refer_case(case_id, who)
+    return service.case_out(service.refer_case(case_id, who))
+
+
+@router.post("/cases/{case_id}/court-updates", response_model=CaseOut,
+             summary="Receive court news from the Judiciary (closes the case after the verdict)")
+def court_update(
+    case_id: str,
+    body: CourtUpdate,
+    who: Principal = Depends(require_roles(*COURT_UPDATE_ROLES)),
+    service: PoliceService = Depends(get_police_service),
+):
+    return service.case_out(service.receive_court_update(case_id, body, who))
+
+
+@router.get("/cases/{case_id}/tracking", response_model=CaseTracking,
+            summary="Follow a case: our record plus the live Judiciary and Correctional records")
+def track_case(
+    case_id: str,
+    who: Principal = Depends(reader),
+    service: PoliceService = Depends(get_police_service),
+):
+    return service.track_case(case_id, who)

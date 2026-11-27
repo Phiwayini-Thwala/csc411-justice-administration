@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ORG}} – {{CONSOLE}}</title>
+<style>
+{{CSS}}
+</style>
+</head>
+<body>
+
+<!-- ============ SIGN IN ============ -->
+<div id="login">
+  <div class="card">
+    <div class="mark">{{ICON}}</div>
+    <h1 style="font-size:22px">{{CONSOLE}}</h1>
+    <div class="sub" style="margin-bottom:22px">{{SIGNIN_SUB}}</div>
+    <label>Username</label><input id="lu" autocomplete="username" placeholder="e.g. {{USER_HINT}}">
+    <label>Password</label><input id="lp" type="password" autocomplete="current-password" placeholder="Your password">
+    <button class="btn primary" id="lbtn" style="width:100%;justify-content:center;margin-top:22px">🔐 Sign In</button>
+    <div class="demo">One account works in all three consoles. Use <b>Switch console</b> after signing in to move between Police, Court and Custody without signing in again.</div>
+  </div>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div id="app" class="hidden">
+  <div class="mobile-bar"><button class="btn sm" onclick="document.querySelector('aside').classList.toggle('open')">☰ Menu</button><b>{{CONSOLE}}</b></div>
+  <aside>
+    <div class="logo"><div class="mark">{{ICON}}</div><div><b>{{ORG}} Service</b><small>{{TAGLINE}}</small></div></div>
+    <nav id="nav"></nav>
+    <div class="menu-label">Switch console</div>
+    <div class="svc-links" id="svcLinks"></div>
+    <div class="side-foot">
+      <div class="who" id="who"></div><div class="role" id="role"></div>
+      <div style="margin-bottom:10px"><span class="dot" id="dot"></span><span id="svcStatus">Checking…</span></div>
+      <button class="btn sm" style="width:100%;justify-content:center" onclick="logout()">🚪 Sign Out</button>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+const ME='{{ME}}';
+{{JS}}
+boot();
+</script>
+</body>
+</html>

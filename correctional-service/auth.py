@@ -6,6 +6,8 @@ import jwt
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+ROLES = ("police_officer", "court_officer", "correctional_officer", "admin")
+
 SECRET = os.getenv("JWT_SECRET", "dev-only-shared-secret-change-me-32chars")
 ALGORITHM = "HS256"
 TOKEN_MINUTES = 60
@@ -28,12 +30,16 @@ def current_user(creds: HTTPAuthorizationCredentials = Depends(bearer)) -> dict:
     if creds is None:
         raise ApiError(401, "UNAUTHORIZED", "Missing bearer token")
     try:
-        data = jwt.decode(creds.credentials, SECRET, algorithms=[ALGORITHM])
+        data = jwt.decode(creds.credentials, SECRET, algorithms=[ALGORITHM],
+                          options={"require": ["exp", "sub", "role"]})
     except jwt.ExpiredSignatureError:
-        raise ApiError(401, "UNAUTHORIZED", "Token expired")
+        raise ApiError(401, "UNAUTHORIZED", "Token has expired; log in again")
     except jwt.PyJWTError:
         raise ApiError(401, "UNAUTHORIZED", "Invalid token")
-    return {"username": data.get("sub"), "role": data.get("role")}
+    if data["role"] not in ROLES:
+        raise ApiError(401, "UNAUTHORIZED", "Token carries an unknown role")
+    # the raw token is kept so it can be forwarded to the Judiciary (design 6.2)
+    return {"username": str(data["sub"]), "role": data["role"], "token": creds.credentials}
 
 
 def require_roles(*roles: str):

@@ -3,30 +3,32 @@
 Police part of the Eswatini Justice Administration system (CSC411 mini project).
 Built to the Part 2 System Design: FastAPI, SQLite + SQLAlchemy, JWT (HS256), bcrypt.
 
-## Run (one command per service)
+## Run
 
 ```bash
+cd police-service
 pip install -r requirements.txt
-
-export JWT_SECRET="<same 32+ character secret as the other two services>"
-export JUDICIARY_URL="http://localhost:8002"      # optional, this is the default
-export SEED_DEMO_USERS=1                           # optional: create demo users on start
-export DEMO_PASSWORD="<choose a demo password>"    # required when SEED_DEMO_USERS=1
-
-uvicorn app.main:create_app --factory --port 8001
+uvicorn main:app --port 8001 --reload
 ```
 
-Swagger UI: http://localhost:8001/docs
+- Swagger UI: http://localhost:8001/docs
+- Police Console (web UI for police officers): http://localhost:8001/ui
 
-Demo users (when seeded, all with `DEMO_PASSWORD`): `officer1` (police_officer),
-`court1` (court_officer), `correctional1` (correctional_officer), `admin` (admin).
+Nothing else is required: like the other two services it falls back to the shared
+development secret, creates `police.db`, the demo users and three sample cases.
+
+Demo users (all with `DEMO_PASSWORD`, default `Passw0rd!`): `police1` (police_officer),
+`court1` (court_officer), `correctional1` (correctional_officer), `admin1` (admin).
+`officer1` and `admin` are kept for the existing tests.
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `JWT_SECRET` | HS256 secret shared by the three services (required, 32+ chars) | none |
+| `JWT_SECRET` | HS256 secret shared by the three services (32+ chars) | shared dev secret (warning logged) |
 | `POLICE_DB_URL` | database | `sqlite:///./police.db` |
 | `JUDICIARY_URL` | Judiciary base URL | `http://localhost:8002` |
-| `SEED_DEMO_USERS` / `DEMO_PASSWORD` | create demo users | off |
+| `CORRECTIONAL_URL` | Correctional base URL (read-only, for tracking) | `http://localhost:8003` |
+| `SEED_DEMO_USERS` / `DEMO_PASSWORD` | create demo users | on / `Passw0rd!` |
+| `SEED_SAMPLE_CASES` | create the three sample cases (match the other services' seeds) | on |
 
 Never commit these values. `police.db` and `.env` are in `.gitignore`.
 
@@ -36,13 +38,14 @@ Never commit these values. `police.db` and `.env` are in `.gitignore`.
 python -m pytest
 ```
 
-The tests replace the Judiciary service with a mock, so no other service needs to run.
+The tests replace the Judiciary and Correctional services with mocks, so no other service needs to run.
 
 ## Endpoints
 
 | Method and path | Roles | Success |
 |---|---|---|
 | `POST /auth/login` | anyone | 200 |
+| `GET /suspects`, `GET /arrests`, `GET /cases` | police_officer, court_officer, admin | 200 |
 | `POST /suspects` | police_officer, admin | 201 |
 | `GET /suspects/{id}` | police_officer, court_officer, admin | 200 |
 | `POST /arrests` | police_officer, admin | 201 |
@@ -50,6 +53,8 @@ The tests replace the Judiciary service with a mock, so no other service needs t
 | `GET /cases/{id}` | police_officer, court_officer, admin | 200 |
 | `POST /cases/{id}/charges` | police_officer, admin | 201 |
 | `POST /cases/{id}/refer` | police_officer, admin | 200 |
+| `POST /cases/{id}/court-updates` (called by Judiciary) | court_officer, correctional_officer, admin | 200 |
+| `GET /cases/{id}/tracking` (reads Judiciary + Correctional live) | police_officer, court_officer, admin | 200 |
 | `GET /audit-logs` (`limit`, `record_id`, `username`) | admin | 200 |
 
 IDs: `SUS-0001`, `ARR-0001`, `CHG-0001`, `CASE-2026-0001`.
@@ -95,7 +100,8 @@ Judiciary service**; the design only fixes the path and the response.
 - The same `national_id` cannot be registered twice (409), because it identifies the
   suspect across all three services.
 - `arresting_officer` defaults to the logged-in user.
-- The `REFERRED -> CLOSED` transition exists in the state machine, but the Police contract
-  has no endpoint that closes a case, so nothing calls it yet.
+- `REFERRED -> CLOSED` happens when the Judiciary reports a court status of `SENTENCED` or
+  `CLOSED` through `POST /cases/{id}/court-updates`. Later court news (transfer, sentence
+  served) still updates `court_status` and `court_outcome` on the closed case.
 - bcrypt is used directly (`bcrypt` package) instead of through `passlib`, because passlib
   1.7.x fails with bcrypt 4.1 and later. The hashing algorithm is the same.

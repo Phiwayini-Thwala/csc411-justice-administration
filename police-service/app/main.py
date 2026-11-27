@@ -1,26 +1,33 @@
 """Police Service (port 8001), part of the Eswatini Justice Administration system.
 
-Run:  uvicorn app.main:create_app --factory --port 8001
+Run (from the police-service folder):
+    uvicorn main:app --port 8001 --reload
+(The factory form also works: uvicorn app.main:create_app --factory --port 8001)
 """
 import logging
+import os
 import time
 from typing import Optional
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import IntegrityError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from .config import Settings
-from .database import Base, make_engine, make_session_factory
+from .config import DEV_SECRET, Settings
+from .database import Base, add_missing_columns, make_engine, make_session_factory
 from .errors import AppError
-from .judiciary_client import JudiciaryClient
+from .judiciary_client import CorrectionalClient, JudiciaryClient
 from .repository import PoliceRepository
 from .routers import audit, auth, police
-from .seed import seed_demo_users
+from .seed import seed_demo_users, seed_sample_cases
 
 log = logging.getLogger("police.http")
+
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
 HTTP_ERROR_CODES = {
     404: "NOT_FOUND", 405: "METHOD_NOT_ALLOWED", 401: "UNAUTHORIZED", 403: "FORBIDDEN",
@@ -34,20 +41,28 @@ def error_body(code: str, message: str) -> dict:
 def create_app(
     settings: Optional[Settings] = None,
     judiciary: Optional[JudiciaryClient] = None,
+    correctional: Optional[CorrectionalClient] = None,
 ) -> FastAPI:
     settings = settings or Settings.from_env()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    if settings.jwt_secret == DEV_SECRET:
+        logging.getLogger("police").warning(
+            "Using the development JWT secret. Set JWT_SECRET (same value in all three services).")
 
     engine = make_engine(settings.database_url)
     import app.models  # noqa: F401  (registers the tables on Base)
     Base.metadata.create_all(engine)
+    add_missing_columns(engine)
     session_factory = make_session_factory(engine)
 
-    if settings.seed_demo_users:
-        if not settings.demo_password:
-            raise RuntimeError("SEED_DEMO_USERS is on but DEMO_PASSWORD is not set")
-        with session_factory() as db:
-            seed_demo_users(PoliceRepository(db), settings.demo_password, settings.bcrypt_rounds)
+    with session_factory() as db:
+        repo = PoliceRepository(db)
+        if settings.seed_demo_users:
+            if not settings.demo_password:
+                raise RuntimeError("SEED_DEMO_USERS is on but DEMO_PASSWORD is not set")
+            seed_demo_users(repo, settings.demo_password, settings.bcrypt_rounds)
+        if settings.seed_sample_cases:
+            seed_sample_cases(repo)
 
     app = FastAPI(
         title="Police Service",
@@ -58,6 +73,11 @@ def create_app(
     app.state.engine = engine
     app.state.session_factory = session_factory
     app.state.judiciary = judiciary or JudiciaryClient(settings.judiciary_url, settings.request_timeout)
+    app.state.correctional = correctional or CorrectionalClient(
+        settings.correctional_url, settings.request_timeout)
+
+    # the browser consoles of the other services call us from another origin/port
+    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
     app.include_router(auth.router)
     app.include_router(police.router)
@@ -96,5 +116,16 @@ def create_app(
         ms = (time.perf_counter() - start) * 1000
         log.info("%s %s -> %s (%.0f ms)", request.method, request.url.path, response.status_code, ms)
         return response
+
+    # ----- police officer web console (served by this service) -----
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+    @app.get("/ui", include_in_schema=False)
+    def ui():
+        return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
+    @app.get("/", include_in_schema=False)
+    def root():
+        return {"service": "Police Service", "port": 8001, "status": "running", "ui": "/ui", "docs": "/docs"}
 
     return app

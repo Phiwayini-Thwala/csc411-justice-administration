@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 
 from ..deps import get_repo, require_roles
 from ..repository import PoliceRepository
-from ..schemas import AuditLogOut
+from ..schemas import AuditLogOut, audit_out
 
 router = APIRouter(tags=["audit"])
 
@@ -18,4 +18,4 @@ def read_audit_logs(
     _admin=Depends(require_roles("admin")),
     repo: PoliceRepository = Depends(get_repo),
 ):
-    return repo.list_audit(limit=limit, record_id=record_id, username=username)
+    return [audit_out(r) for r in repo.list_audit(limit=limit, record_id=record_id, username=username)]

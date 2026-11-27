@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eswatini Justice Administration System</title>
+<style>
+{{CSS}}
+/* ---- portal ---- */
+.wrap{max-width:1180px;margin:0 auto;padding:34px 24px 60px}
+.hero{display:flex;gap:18px;align-items:center;margin-bottom:28px;flex-wrap:wrap}
+.hero .mark{width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg,var(--brand),#8a5cf6);display:grid;place-items:center;color:#fff;font-size:30px;box-shadow:var(--shadow)}
+.hero h1{font-size:30px}.hero .sub{font-size:15px}
+.svc{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.svc .card{display:flex;flex-direction:column;gap:10px}
+.svc .top{display:flex;gap:14px;align-items:center}
+.svc .ic{width:48px;height:48px;border-radius:14px;background:var(--brand-soft);display:grid;place-items:center;font-size:24px}
+.svc h3{font-size:17px}.svc p{color:var(--muted);font-size:14px;line-height:1.5}
+.svc .links{display:flex;gap:8px;margin-top:auto;flex-wrap:wrap}
+.svc a.btn{text-decoration:none}
+.pill{font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px}
+.dia{overflow-x:auto}.dia svg{min-width:760px;width:100%;height:auto}
+.dia text{font-family:inherit}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:22px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.how{counter-reset:s;list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.how li{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px 14px 52px;position:relative;box-shadow:var(--shadow);font-size:14px;line-height:1.45}
+.how li:before{counter-increment:s;content:counter(s);position:absolute;left:14px;top:14px;width:26px;height:26px;border-radius:8px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:700;font-size:13px}
+.how li b{display:block;margin-bottom:2px}
+.acct td,.acct th{padding:10px 14px}
+.tracker .row{display:flex;gap:10px;flex-wrap:wrap}.tracker input{max-width:260px}
+.person{margin-top:16px}
+footer{color:var(--muted);font-size:13px;text-align:center;margin-top:40px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero"><div class="mark">🏛️</div><div><h1>Eswatini Justice Administration System</h1>
+    <div class="sub">Police · Judiciary · Correctional Services — three systems, three databases, one process. CSC411 Mini Project, University of Eswatini.</div></div></div>
+
+  <div class="svc" id="svc"></div>
+
+  <h2>How the three databases communicate</h2>
+  <div class="card dia">
+  <svg viewBox="0 0 960 330" role="img" aria-label="Data flow between the Police, Judiciary and Correctional services">
+    <defs>
+      <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="var(--brand)"/></marker>
+      <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="var(--ok)"/></marker>
+      <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="var(--muted)"/></marker>
+    </defs>
+    <g font-size="14">
+      <rect x="20" y="105" width="210" height="120" rx="16" fill="var(--surface2)" stroke="var(--border)"/>
+      <text x="125" y="140" text-anchor="middle" font-size="26">👮</text>
+      <text x="125" y="170" text-anchor="middle" font-weight="700" fill="var(--text)">Police</text>
+      <text x="125" y="192" text-anchor="middle" fill="var(--muted)" font-size="12">police.db · port 8001</text>
+      <text x="125" y="210" text-anchor="middle" fill="var(--muted)" font-size="12">suspects · arrests · cases</text>
+
+      <rect x="375" y="105" width="210" height="120" rx="16" fill="var(--surface2)" stroke="var(--border)"/>
+      <text x="480" y="140" text-anchor="middle" font-size="26">⚖️</text>
+      <text x="480" y="170" text-anchor="middle" font-weight="700" fill="var(--text)">Judiciary</text>
+      <text x="480" y="192" text-anchor="middle" fill="var(--muted)" font-size="12">judiciary.db · port 8002</text>
+      <text x="480" y="210" text-anchor="middle" fill="var(--muted)" font-size="12">court cases · hearings · decisions</text>
+
+      <rect x="730" y="105" width="210" height="120" rx="16" fill="var(--surface2)" stroke="var(--border)"/>
+      <text x="835" y="140" text-anchor="middle" font-size="26">🏛️</text>
+      <text x="835" y="170" text-anchor="middle" font-weight="700" fill="var(--text)">Correctional</text>
+      <text x="835" y="192" text-anchor="middle" fill="var(--muted)" font-size="12">correctional.db · port 8003</text>
+      <text x="835" y="210" text-anchor="middle" fill="var(--muted)" font-size="12">inmates · transfers · releases</text>
+    </g>
+    <g font-size="12" fill="var(--text)">
+      <!-- forward: commands -->
+      <path d="M230,135 L373,135" stroke="var(--brand)" stroke-width="2.5" fill="none" marker-end="url(#a1)"/>
+      <text x="302" y="96" text-anchor="middle" font-weight="600">refer case</text>
+      <text x="302" y="112" text-anchor="middle" fill="var(--muted)">POST /court-cases</text>
+      <path d="M585,135 L728,135" stroke="var(--brand)" stroke-width="2.5" fill="none" marker-end="url(#a1)"/>
+      <text x="657" y="80" text-anchor="middle" font-weight="600">remand · sentence · release order</text>
+      <text x="657" y="96" text-anchor="middle" fill="var(--muted)">POST /inmates · PUT …/status</text>
+      <text x="657" y="112" text-anchor="middle" fill="var(--muted)">POST …/release</text>
+      <!-- feedback -->
+      <path d="M373,195 L232,195" stroke="var(--ok)" stroke-width="2.5" fill="none" marker-end="url(#a2)"/>
+      <text x="302" y="245" text-anchor="middle" font-weight="600">every court decision</text>
+      <text x="302" y="261" text-anchor="middle" fill="var(--muted)">POST /cases/{id}/court-updates</text>
+      <path d="M728,195 L587,195" stroke="var(--ok)" stroke-width="2.5" fill="none" marker-end="url(#a2)"/>
+      <text x="657" y="245" text-anchor="middle" font-weight="600">transfer · release</text>
+      <text x="657" y="261" text-anchor="middle" fill="var(--muted)">POST /court-cases/{id}/custody-events</text>
+      <!-- live reads -->
+      <path d="M125,225 C125,320 835,320 835,227" stroke="var(--muted)" stroke-width="1.8" stroke-dasharray="6 5" fill="none" marker-end="url(#a3)"/>
+      <text x="480" y="312" text-anchor="middle" fill="var(--muted)">live reads: GET /cases/{id}/tracking · GET /court-cases/{id}/linked · GET /inmates/{id}/linked</text>
+      <path d="M125,105 C125,30 480,30 480,103" stroke="var(--muted)" stroke-width="1.8" stroke-dasharray="6 5" fill="none" marker-end="url(#a3)"/>
+      <text x="300" y="40" text-anchor="middle" fill="var(--muted)">GET /court-cases/{id}</text>
+    </g>
+  </svg>
+  <div class="legend"><span><i style="background:var(--brand)"></i>Commands (must succeed, otherwise nothing is saved)</span><span><i style="background:var(--ok)"></i>Feedback (best effort, can be resent)</span><span><i style="background:var(--muted)"></i>Live reads (shown in each console)</span></div>
+  </div>
+
+  <h2>Justice tracker — find a person in all three systems</h2>
+  <div class="card tracker">
+    <div id="tLogin"><div class="sub" style="margin-bottom:12px">Sign in once (an administrator can see all three systems). The same account and token work in every service.</div>
+      <div class="row"><input id="tu" placeholder="Username (e.g. admin1)" autocomplete="username"><input id="tp" type="password" placeholder="Password" autocomplete="current-password"><button class="btn primary" id="tl">🔐 Sign In</button></div></div>
+    <div id="tSearch" class="hidden"><div class="row"><input id="tq" placeholder="National ID or name, e.g. Sipho"><button class="btn primary" id="tg">🔍 Search</button><button class="btn" id="to">Sign out</button><span class="mut" id="twho" style="align-self:center"></span></div>
+      <div id="tres"></div></div>
+  </div>
+
+  <h2>Demo walk-through</h2>
+  <ol class="how">
+    <li><b>Police: process an arrest</b>Sign in to the Police Console as <code>police1</code>, choose <i>Process a New Arrest</i>, tick “refer to court”.</li>
+    <li><b>Judiciary receives it</b>The case appears in the Court Console with status <i>Awaiting Hearing</i>. Switch console — no second sign-in.</li>
+    <li><b>Court schedules and remands</b>Sign in as <code>court1</code>. Schedule a hearing, then remand: the Custody Console now lists a new inmate.</li>
+    <li><b>Police sees the news</b>Back in the Police Console the case shows <i>Held in Custody</i>; <i>Track</i> shows the live journey.</li>
+    <li><b>Verdict</b>Deliver a guilty verdict with imprisonment. The inmate becomes <i>Serving Sentence</i>; the police case closes.</li>
+    <li><b>Custody</b>Sign in as <code>correctional1</code>. Transfer the inmate; the court file and police case record the new facility.</li>
+    <li><b>Sentence served</b>Release with <i>Sentence completed</i>: the court case closes and the police case shows the outcome.</li>
+    <li><b>Audit</b>Sign in as <code>admin1</code> and open <i>Activity History</i> in each console.</li>
+  </ol>
+
+  <h2>Demo accounts</h2>
+  <div class="card tbl"><table class="acct"><thead><tr><th>Username</th><th>Role</th><th>Police</th><th>Judiciary</th><th>Correctional</th></tr></thead><tbody>
+    <tr><td class="name">police1</td><td>Police Officer</td><td>Full</td><td>Refer; follow own case</td><td>Read</td></tr>
+    <tr><td class="name">court1</td><td>Court Officer</td><td>Read</td><td>Full</td><td>Admit / convict / release (via court)</td></tr>
+    <tr><td class="name">correctional1</td><td>Correctional Officer</td><td>—</td><td>Read</td><td>Full</td></tr>
+    <tr><td class="name">admin1</td><td>Administrator</td><td>Full + audit</td><td>Full + audit</td><td>Full + audit</td></tr>
+  </tbody></table><div class="hint" style="padding:0 16px 14px">The password for all demo accounts is the <code>DEMO_PASSWORD</code> setting (see the README).</div></div>
+
+  <footer>CSC411 Integrative Programming Technologies · University of Eswatini · Department of Computer Science</footer>
+</div>
+<div class="toast-wrap" id="toasts"></div>
+<script>
+const $=s=>document.querySelector(s);
+const HOST=location.protocol.startsWith('http')?location.hostname:'localhost';
+const SVC={police:{port:8001,name:'Police Service',console:'Police Console',icon:'👮',text:'Registers suspects, records arrests, opens cases and lays charges, then refers the case to court. Receives every court decision back and closes the case.'},
+  judiciary:{port:8002,name:'Judiciary Service',console:'Court Console',icon:'⚖️',text:'Receives referred cases, schedules hearings, grants bail or remands, and delivers verdicts. Orders admissions and releases at Correctional Services.'},
+  correctional:{port:8003,name:'Correctional Service',console:'Custody Console',icon:'🏛️',text:'Admits remanded and sentenced inmates, manages transfers between facilities and releases, and reports every movement back to the court.'}};
+const base=k=>`http://${HOST}:${SVC[k].port}`;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const utc=d=>d&&!/(Z|[+-]\d\d:?\d\d)$/.test(d)?d+'Z':d;
+const fmtDay=d=>d?new Date(d).toLocaleDateString([], {dateStyle:'medium'}):'—';
+const LBL={OPEN:'Open Investigation',REFERRED:'Referred to Court',CLOSED:'Case Closed',RECEIVED:'Awaiting Hearing',HEARING_SCHEDULED:'Hearing Scheduled',ON_BAIL:'Out on Bail',ON_REMAND:'Held in Custody',SENTENCED:'Sentenced',
+  REMAND:'On Remand',CONVICTED:'Serving Sentence',TRANSFERRED:'Transferred',RELEASED:'Released'};
+const badge=s=>`<span class="badge b-${esc(s)}">${esc(LBL[s]||s)}</span>`;
+function toast(m,t=''){const e=document.createElement('div');e.className='toast '+t;e.textContent=m;$('#toasts').append(e);setTimeout(()=>e.remove(),5000)}
+
+$('#svc').innerHTML=Object.entries(SVC).map(([k,s])=>`<div class="card"><div class="top"><div class="ic">${s.icon}</div><div><h3>${s.name}</h3>
+  <span class="pill"><span class="dot" id="d-${k}"></span><span id="s-${k}">Checking…</span> · port ${s.port}</span></div></div><p>${s.text}</p>
+  <div class="links"><a class="btn primary sm" href="${base(k)}/ui">Open ${s.console} →</a><a class="btn sm" href="${base(k)}/docs">API docs</a></div></div>`).join('');
+async function ping(){for(const k in SVC){let ok=false;try{ok=(await fetch(base(k)+'/')).ok}catch{}$('#d-'+k).className='dot '+(ok?'on':'off');$('#s-'+k).textContent=ok?'Online':'Not running'}}
+ping();setInterval(ping,15000);
+
+/* ---- tracker: one token, three databases ---- */
+let TOKEN=null;
+async function call(k,path){
+  const r=await fetch(base(k)+path,{headers:{Authorization:'Bearer '+TOKEN}});let d=null;try{d=await r.json()}catch{}
+  if(!r.ok)throw new Error(r.status===403?'Your role cannot read these records':(d?.message||'HTTP '+r.status));return d;
+}
+$('#tl').onclick=async()=>{
+  const username=$('#tu').value.trim(),password=$('#tp').value;if(!username||!password)return toast('Enter a username and password.','err');
+  for(const k of ['judiciary','police','correctional']){
+    try{const r=await fetch(base(k)+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+      if(r.ok){const d=await r.json();TOKEN=d.access_token;$('#twho').textContent='Signed in as '+username+' ('+d.role.replace('_',' ')+')';$('#tLogin').classList.add('hidden');$('#tSearch').classList.remove('hidden');return}
+      if(r.status===401)return toast('Wrong username or password.','err');
+    }catch{}
+  }
+  toast('No service could be reached. Start the services first.','err');
+};
+$('#to').onclick=()=>{TOKEN=null;$('#tSearch').classList.add('hidden');$('#tLogin').classList.remove('hidden');$('#tres').innerHTML=''};
+$('#tq').onkeydown=e=>{if(e.key==='Enter')$('#tg').click()};
+$('#tg').onclick=async()=>{
+  const q=$('#tq').value.trim().toLowerCase();if(!q)return;
+  $('#tres').innerHTML='<div class="mut" style="margin-top:14px">Searching all three systems…</div>';
+  const [p,j,c]=await Promise.allSettled([call('police','/cases'),call('judiciary','/court-cases'),call('correctional','/inmates?search='+encodeURIComponent(q))]);
+  const hit=(...v)=>v.join(' ').toLowerCase().includes(q);
+  const pc=p.status==='fulfilled'?p.value.filter(x=>hit(x.suspect_name,x.national_id,x.case_id)):null;
+  const jc=j.status==='fulfilled'?j.value.filter(x=>hit(x.suspect.full_name,x.suspect.national_id,x.court_case_id,x.police_case_id)):null;
+  const ic=c.status==='fulfilled'?c.value.filter(x=>hit(x.full_name,x.national_id,x.inmate_id,x.court_case_id)):null;
+  const people={};
+  const add=(nid,name)=>people[nid]=people[nid]||{nid,name,p:[],j:[],c:[]};
+  (pc||[]).forEach(x=>add(x.national_id,x.suspect_name).p.push(x));
+  (jc||[]).forEach(x=>add(x.suspect.national_id,x.suspect.full_name).j.push(x));
+  (ic||[]).forEach(x=>add(x.national_id,x.full_name).c.push(x));
+  const col=(title,arr,err,fn)=>`<div class="col"><h4>${title}</h4>${err?`<div class="err">${esc(err)}</div>`:arr.length?arr.map(fn).join(''):'<div class="mut">No record</div>'}</div>`;
+  const errOf=r=>r.status==='rejected'?r.reason.message:null;
+  const list=Object.values(people);
+  $('#tres').innerHTML=list.length?list.map(x=>`<div class="person"><div class="casebox"><b>${esc(x.name)}</b> · National ID ${esc(x.nid)}</div><div class="journey">
+    ${col('👮 Police',x.p,errOf(p),r=>`<div style="margin-bottom:8px"><b>${esc(r.case_id)}</b> ${badge(r.status)}<div class="mut">${esc(r.charges.map(c=>c.offence).join(', '))}</div>${r.court_outcome?`<div class="mut">${esc(r.court_outcome)}</div>`:''}</div>`)}
+    ${col('⚖️ Judiciary',x.j,errOf(j),r=>`<div style="margin-bottom:8px"><b>${esc(r.court_case_id)}</b> ${badge(r.status)}<div class="mut">Police ref ${esc(r.police_case_id)} · ${r.hearings.length} hearing(s)</div></div>`)}
+    ${col('🏛️ Correctional',x.c,errOf(c),r=>`<div style="margin-bottom:8px"><b>${esc(r.inmate_id)}</b> ${badge(r.status)}<div class="mut">${esc(r.facility)} · admitted ${fmtDay(utc(r.admitted_at))}</div></div>`)}
+  </div></div>`).join(''):`<div class="empty">Nobody matching “${esc(q)}” in any system${[p,j,c].some(r=>r.status==='rejected')?' you can read':''}.</div>`;
+};
+</script>
+</body>
+</html>

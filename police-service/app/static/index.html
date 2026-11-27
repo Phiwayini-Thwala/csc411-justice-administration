@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Police – Police Console</title>
+<style>
+:root{
+  --bg:#f4f5f9;--surface:#fff;--surface2:#f0f2f8;--text:#1a1d2e;--muted:#6b7190;--border:#e3e6f0;
+  --brand:#3b3fd8;--brand-d:#2c2fb3;--brand-soft:#ecebff;
+  --ok:#0f9d6b;--ok-s:#dcf5ea;--warn:#c27803;--warn-s:#fdf0d5;--bad:#d63b4b;--bad-s:#fde3e6;--info:#1a73e8;--info-s:#e0edff;--grey-s:#e8eaf2;
+  --shadow:0 1px 3px rgba(20,24,60,.08),0 8px 24px rgba(20,24,60,.06);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f111a;--surface:#181b28;--surface2:#1f2333;--text:#eceefa;--muted:#8d93b3;--border:#2a2f45;
+  --brand:#7377ff;--brand-d:#8e91ff;--brand-soft:#252850;
+  --ok:#35c995;--ok-s:#123428;--warn:#f0b34a;--warn-s:#3a2d10;--bad:#ff6b7b;--bad-s:#3d1a20;--info:#6aa6ff;--info-s:#15294a;--grey-s:#262a3d;
+  --shadow:0 1px 3px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);
+}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px}
+.hidden{display:none!important}
+#app{display:flex;min-height:100vh}
+aside{width:270px;background:var(--surface);border-right:1px solid var(--border);padding:22px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex-shrink:0;overflow-y:auto}
+.logo{display:flex;align-items:center;gap:12px;padding:0 10px 18px}
+.logo .mark{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--brand),#8a5cf6);display:grid;place-items:center;color:#fff;font-size:20px}
+.logo b{display:block;font-size:16px}.logo small{color:var(--muted);font-size:12px}
+.menu-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:14px 12px 6px}
+nav button{width:100%;display:flex;align-items:center;gap:12px;padding:10px 12px;border:0;background:none;color:var(--text);font:inherit;border-radius:10px;cursor:pointer;text-align:left;transition:.15s}
+nav button:hover{background:var(--surface2)}
+nav button.active{background:var(--brand-soft);color:var(--brand);font-weight:600}
+nav .ic{width:22px;text-align:center;font-size:17px}
+.side-foot{margin-top:auto;padding:12px;border-radius:12px;background:var(--surface2);font-size:13px}
+.side-foot .who{font-weight:600}.side-foot .role{color:var(--muted);font-size:12px;margin-bottom:10px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:6px}
+.dot.on{background:var(--ok)}.dot.off{background:var(--bad)}
+main{flex:1;padding:30px 36px;min-width:0}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+h1{font-size:26px;letter-spacing:-.02em}.sub{color:var(--muted);margin-top:4px}
+.btn{border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.15s;background:var(--surface2);color:var(--text)}
+.btn:hover{filter:brightness(.96);transform:translateY(-1px)}
+.btn.primary{background:var(--brand);color:#fff}.btn.primary:hover{background:var(--brand-d)}
+.btn.sm{padding:7px 11px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:var(--shadow)}
+.stat .n{font-size:32px;font-weight:700;letter-spacing:-.02em;margin-top:6px}
+.stat .l{color:var(--muted);font-size:13px;display:flex;gap:8px;align-items:center}
+.stat .bar{height:4px;border-radius:4px;margin-top:12px}
+.qa{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.qa button{text-align:left;padding:18px;border-radius:14px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font:inherit;color:var(--text);transition:.15s;box-shadow:var(--shadow)}
+.qa button:hover{border-color:var(--brand);transform:translateY(-2px)}
+.qa .ic{font-size:24px;display:block;margin-bottom:10px}.qa b{display:block}.qa span.d{color:var(--muted);font-size:13px}
+h2{font-size:17px;margin:26px 0 14px}
+.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+input,select,textarea{font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;width:100%;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.toolbar input{max-width:320px}.toolbar select{max-width:230px}
+.tbl{overflow-x:auto;padding:0}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:14px 16px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:14px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:0}tbody tr:hover{background:var(--surface2)}
+.name{font-weight:600}.mut{color:var(--muted);font-size:13px}
+.badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:600;white-space:nowrap}
+.b-RECEIVED{background:var(--info-s);color:var(--info)}.b-HEARING_SCHEDULED{background:var(--brand-soft);color:var(--brand)}
+.b-ON_BAIL{background:var(--warn-s);color:var(--warn)}.b-ON_REMAND{background:var(--grey-s);color:var(--text)}
+.b-SENTENCED{background:var(--bad-s);color:var(--bad)}.b-CLOSED{background:var(--ok-s);color:var(--ok)}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}.empty .ic{font-size:38px;display:block;margin-bottom:8px}
+.form-card{max-width:680px}
+label{display:block;font-weight:600;font-size:13.5px;margin:16px 0 6px}label:first-child{margin-top:0}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hint{font-size:12.5px;color:var(--muted);margin-top:5px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg label{margin:0;border:1.5px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;font-weight:600;display:flex;gap:10px;align-items:center}
+.seg input{width:auto}.seg label:has(input:checked){border-color:var(--brand);background:var(--brand-soft)}
+.casebox{background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:6px}
+.notice{background:var(--warn-s);color:var(--warn);border-radius:10px;padding:11px 14px;font-size:13.5px;margin-top:14px}
+.modal-bg{position:fixed;inset:0;background:rgba(10,12,30,.55);display:none;place-items:center;z-index:50;padding:20px;backdrop-filter:blur(3px)}
+.modal-bg.open{display:grid}
+.modal{background:var(--surface);border-radius:18px;padding:26px;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.35);max-height:92vh;overflow:auto}
+.modal.wide{max-width:720px}
+.modal h3{font-size:19px;margin-bottom:16px}
+.modal .foot{display:flex;justify-content:flex-end;gap:10px;margin-top:22px;flex-wrap:wrap}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:8px 14px;font-size:14px}.kv dt{color:var(--muted)}
+.sect{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:20px 0 8px}
+.chip{display:inline-block;background:var(--surface2);border-radius:8px;padding:6px 10px;margin:0 6px 6px 0;font-size:13px}
+.timeline{list-style:none}
+.timeline li{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--border)}
+.timeline li:last-child{border:0}
+.tl-ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--brand-soft);flex-shrink:0;font-size:16px}
+.charge-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:8px}
+.toast-wrap{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:10px;z-index:100}
+.toast{background:var(--text);color:var(--bg);padding:13px 18px;border-radius:12px;box-shadow:var(--shadow);font-weight:500;animation:in .25s;max-width:380px}
+.toast.err{background:var(--bad);color:#fff}.toast.ok{background:var(--ok);color:#fff}
+@keyframes in{from{opacity:0;transform:translateY(10px)}}
+/* login */
+#login{min-height:100vh;display:grid;place-items:center;padding:20px;background:linear-gradient(135deg,var(--brand-soft),var(--bg))}
+#login .card{width:100%;max-width:400px;padding:32px}
+#login .mark{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--brand),#8a5cf6);display:grid;place-items:center;color:#fff;font-size:28px;margin-bottom:16px}
+.demo{margin-top:18px;font-size:12.5px;color:var(--muted);background:var(--surface2);border-radius:10px;padding:10px 12px}
+.mobile-bar{display:none}
+@media(max-width:860px){
+  #app{flex-direction:column}
+  aside{position:fixed;left:-290px;z-index:40;transition:.25s;height:100vh}aside.open{left:0}
+  main{padding:20px 16px}.row2{grid-template-columns:1fr}.kv{grid-template-columns:1fr}
+  .mobile-bar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30}
+}
+
+/* ---- shared additions: one look for all three consoles ---- */
+.b-OPEN{background:var(--info-s);color:var(--info)}.b-REFERRED{background:var(--brand-soft);color:var(--brand)}
+.b-REMAND{background:var(--grey-s);color:var(--text)}.b-CONVICTED{background:var(--bad-s);color:var(--bad)}
+.b-TRANSFERRED{background:var(--warn-s);color:var(--warn)}.b-RELEASED{background:var(--ok-s);color:var(--ok)}
+.b-OK{background:var(--ok-s);color:var(--ok)}.b-FAILED{background:var(--bad-s);color:var(--bad)}.b-NONE{background:var(--grey-s);color:var(--muted)}
+.svc-links a{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:10px;color:var(--text);text-decoration:none;font-size:14px;transition:.15s}
+.svc-links a:hover{background:var(--surface2)}.svc-links a.me{color:var(--brand);font-weight:600}
+.svc-links .ic{width:22px;text-align:center;font-size:16px}
+.svc-links .dot{margin:0 0 0 auto}
+.flow{display:flex;align-items:stretch;gap:10px;margin-bottom:24px;flex-wrap:wrap}
+.flow .st{flex:1;min-width:170px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);display:flex;gap:12px;align-items:center}
+.flow .st.me{border-color:var(--brand);background:var(--brand-soft)}
+.flow .st .ic{font-size:24px}.flow .st b{display:block;font-size:14px}.flow .st span{color:var(--muted);font-size:12.5px}
+.flow .ar{display:grid;place-items:center;color:var(--muted);font-size:18px}
+.journey{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.journey .col{background:var(--surface2);border-radius:14px;padding:14px;min-width:0}
+.journey .col h4{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;display:flex;gap:8px;align-items:center}
+.journey .col .kv{grid-template-columns:auto minmax(0,1fr);gap:6px 10px;font-size:13px}.journey .col dd{overflow-wrap:anywhere;min-width:0}
+.journey .err{font-size:13px;color:var(--warn)}
+.progress{height:8px;border-radius:8px;background:var(--grey-s);overflow:hidden;margin-top:8px}.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),#8a5cf6)}
+.syncrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px}
+.steps{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}.steps span{padding:6px 12px;border-radius:99px;background:var(--surface2);font-size:13px;color:var(--muted);font-weight:600}
+.steps span.on{background:var(--brand-soft);color:var(--brand)}
+.form-card h3{font-size:15px;margin:22px 0 2px}.form-card h3:first-child{margin-top:0}
+@media(max-width:860px){.journey{grid-template-columns:1fr}.flow .ar{transform:rotate(90deg);width:100%}}
+.svc-links{margin-bottom:18px}
+
+.grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.form-card .row2>div>label:first-child{margin-top:16px}.form-card>.row2:first-child>div>label:first-child{margin-top:0}
+
+</style>
+</head>
+<body>
+
+<!-- ============ SIGN IN ============ -->
+<div id="login">
+  <div class="card">
+    <div class="mark">👮</div>
+    <h1 style="font-size:22px">Police Console</h1>
+    <div class="sub" style="margin-bottom:22px">Sign in to manage suspects, arrests and cases</div>
+    <label>Username</label><input id="lu" autocomplete="username" placeholder="e.g. police1">
+    <label>Password</label><input id="lp" type="password" autocomplete="current-password" placeholder="Your password">
+    <button class="btn primary" id="lbtn" style="width:100%;justify-content:center;margin-top:22px">🔐 Sign In</button>
+    <div class="demo">One account works in all three consoles. Use <b>Switch console</b> after signing in to move between Police, Court and Custody without signing in again.</div>
+  </div>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div id="app" class="hidden">
+  <div class="mobile-bar"><button class="btn sm" onclick="document.querySelector('aside').classList.toggle('open')">☰ Menu</button><b>Police Console</b></div>
+  <aside>
+    <div class="logo"><div class="mark">👮</div><div><b>Police Service</b><small>Suspects, Arrests &amp; Cases</small></div></div>
+    <nav id="nav"></nav>
+    <div class="menu-label">Switch console</div>
+    <div class="svc-links" id="svcLinks"></div>
+    <div class="side-foot">
+      <div class="who" id="who"></div><div class="role" id="role"></div>
+      <div style="margin-bottom:10px"><span class="dot" id="dot"></span><span id="svcStatus">Checking…</span></div>
+      <button class="btn sm" style="width:100%;justify-content:center" onclick="logout()">🚪 Sign Out</button>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+const ME='police';
+/* ===== Shared console core (identical in the Police, Court and Custody consoles) =====
+   Each page defines before this file:  ME  (police | judiciary | correctional)
+   and after it: navItems(), VIEWS, loadFor(view) and its own screens. */
+const $=s=>document.querySelector(s);
+const SVC={
+  police:{port:8001,name:'Police Console',org:'Royal Eswatini Police',icon:'👮',does:'Arrest, charge & refer'},
+  judiciary:{port:8002,name:'Court Console',org:'Judiciary',icon:'⚖️',does:'Hear, decide & sentence'},
+  correctional:{port:8003,name:'Custody Console',org:'Correctional Services',icon:'🏛️',does:'Admit, hold & release'}};
+const ONHTTP=location.protocol.startsWith('http');
+const HOST=ONHTTP?location.hostname:'localhost';
+// Locally the services are localhost:8001-8003. In GitHub Codespaces each port has its
+// own address (name-8001.app.github.dev), so swap the port inside the host name instead.
+const CODESPACE=/-800[123]\./.test(HOST);
+const baseOf=k=>CODESPACE?`https://${HOST.replace(/-800[123]\./,`-${SVC[k].port}.`)}`:`http://${HOST}:${SVC[k].port}`;
+const API=ONHTTP?'':baseOf(ME);
+const SKEY='jas-'+ME;
+let TOKEN=null, USER=null, view='dashboard';
+
+/* ---- labels shared by all consoles (same words for the same status everywhere) ---- */
+const COURT={RECEIVED:'Awaiting Hearing',HEARING_SCHEDULED:'Hearing Scheduled',ON_BAIL:'Out on Bail',ON_REMAND:'Held in Custody',SENTENCED:'Sentenced',CLOSED:'Case Closed'};
+const POLICE={OPEN:'Open Investigation',REFERRED:'Referred to Court',CLOSED:'Case Closed'};
+const CUSTODY={REMAND:'On Remand',CONVICTED:'Serving Sentence',TRANSFERRED:'Transferred',RELEASED:'Released'};
+const RELEASE={SENTENCE_COMPLETED:'Sentence completed',ACQUITTED:'Acquitted by the court',COURT_ORDER:'Court order',BAIL_GRANTED:'Bail granted by the court'};
+const SYNC={OK:'Delivered',FAILED:'Not delivered',NONE:'Nothing sent yet'};
+const roleName=r=>({court_officer:'Court Officer',admin:'Administrator',correctional_officer:'Correctional Officer',police_officer:'Police Officer'}[r]||r);
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const utc=d=>d&&!/(Z|[+-]\d\d:?\d\d)$/.test(d)?d+'Z':d;           // server times are UTC without a zone
+const fmtDate=d=>d?new Date(d).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}):'—';
+const fmtDay=d=>d?new Date(d).toLocaleDateString([], {dateStyle:'medium'}):'—';
+const money=n=>n==null?'—':'E '+Number(n).toLocaleString([], {minimumFractionDigits:2,maximumFractionDigits:2});
+const badge=(s,map)=>s?`<span class="badge b-${esc(s)}">${esc((map||{})[s]||s)}</span>`:'<span class="mut">—</span>';
+const syncBadge=s=>badge(s||'NONE',SYNC);
+const head=(t,s,right='')=>`<div class="topbar"><div><h1>${t}</h1><div class="sub">${s}</div></div><div>${right}</div></div>`;
+const kv=rows=>`<dl class="kv">${rows.filter(r=>r).map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+const emptyBox=(ic,msg,hint='')=>`<div class="empty"><span class="ic">${ic}</span>${msg}${hint?`<div class="hint">${hint}</div>`:''}</div>`;
+
+function toast(msg,type=''){const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;$('#toasts').append(t);setTimeout(()=>t.remove(),5000)}
+
+async function api(path,method='GET',body){
+  const headers={};if(body)headers['Content-Type']='application/json';if(TOKEN)headers.Authorization='Bearer '+TOKEN;
+  let r;try{r=await fetch(API+path,{method,headers,body:body?JSON.stringify(body):undefined})}
+  catch{throw new Error(`Cannot reach the ${SVC[ME].org} service. Is it running on port ${SVC[ME].port}?`)}
+  let data=null;try{data=await r.json()}catch{}
+  if(r.status===401&&TOKEN){logout('Your session has expired. Please sign in again.');throw new Error('Session expired')}
+  if(r.status===403)throw new Error(data?.message||'Your role is not allowed to do this here.');
+  if(!r.ok)throw new Error(data?.message||('Request failed ('+r.status+')'));
+  return data;
+}
+
+/* ---------- Sign in / out (the same accounts work in every console) ---------- */
+async function login(){
+  const username=$('#lu').value.trim(),password=$('#lp').value;
+  if(!username||!password)return toast('Enter your username and password.','err');
+  $('#lbtn').disabled=true;
+  try{
+    const r=await api('/auth/login','POST',{username,password});
+    setSession(r.access_token,{username,role:r.role});start();
+  }catch(e){toast(e.message,'err')}finally{$('#lbtn').disabled=false}
+}
+function setSession(t,u){TOKEN=t;USER=u;try{sessionStorage.setItem(SKEY,JSON.stringify({TOKEN,USER}))}catch{}}
+function logout(msg){
+  TOKEN=null;USER=null;try{sessionStorage.removeItem(SKEY)}catch{}
+  $('#app').classList.add('hidden');$('#login').classList.remove('hidden');$('#lp').value='';
+  if(msg)toast(msg,'err');
+}
+$('#lbtn').onclick=login;$('#lp').onkeydown=e=>{if(e.key==='Enter')login()};
+
+function start(){
+  $('#login').classList.add('hidden');$('#app').classList.remove('hidden');
+  $('#who').textContent=USER.username;$('#role').textContent=roleName(USER.role);
+  const items=navItems();
+  $('#nav').innerHTML=items.map(i=>i.length===1?`<div class="menu-label">${i[0]}</div>`:`<button data-v="${i[0]}"><span class="ic">${i[1]}</span>${i[2]}</button>`).join('');
+  document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>go(b.dataset.v));
+  drawSwitcher();go('dashboard');
+}
+
+/* ---------- Navigation ---------- */
+async function go(v,...args){
+  view=v;
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
+  document.querySelector('aside').classList.remove('open');
+  try{await loadFor(v)}
+  catch(e){if(TOKEN){$('#main').innerHTML=head(SVC[ME].name,'')+`<div class="card">${emptyBox('🚫',esc(e.message))}</div>`}return}
+  VIEWS[v](...args);
+}
+
+/* ---------- Modals ---------- */
+function openModal(html,wide){$('#modal').className='modal'+(wide?' wide':'');$('#modal').innerHTML=html;$('#modalBg').classList.add('open')}
+function closeModal(){$('#modalBg').classList.remove('open')}
+$('#modalBg').onclick=e=>{if(e.target.id==='modalBg')closeModal()};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+async function submit(btn,fn,msg){
+  btn.disabled=true;
+  try{const r=await fn();closeModal();toast(typeof msg==='function'?msg(r):msg,'ok');await go(view);return r}
+  catch(e){toast(e.message,'err');btn.disabled=false}
+}
+
+/* ---------- The process strip: where this console sits in the justice chain ---------- */
+function flowStrip(){
+  const order=['police','judiciary','correctional'];
+  return `<div class="flow">${order.map((k,i)=>`${i?'<div class="ar">⇄</div>':''}<div class="st ${k===ME?'me':''}"><span class="ic">${SVC[k].icon}</span><div><b>${SVC[k].org}</b><span>${SVC[k].does}</span></div></div>`).join('')}</div>`;
+}
+
+/* ---------- Switch console: carry the sign-in across (one shared JWT secret) ---------- */
+function drawSwitcher(){
+  $('#svcLinks').innerHTML=['police','judiciary','correctional'].map(k=>
+    `<a href="#" data-k="${k}" class="${k===ME?'me':''}"><span class="ic">${SVC[k].icon}</span>${SVC[k].name}<span class="dot" id="dot-${k}"></span></a>`).join('');
+  document.querySelectorAll('#svcLinks a').forEach(a=>a.onclick=e=>{
+    e.preventDefault();const k=a.dataset.k;if(k===ME)return;
+    const target=baseOf(k)+'/ui';
+    location.href=TOKEN?`${target}#sso=${encodeURIComponent(TOKEN)}&u=${encodeURIComponent(USER.username)}&r=${encodeURIComponent(USER.role)}`:target;
+  });
+  pingAll();
+}
+function takeSso(){
+  if(!location.hash.startsWith('#sso='))return false;
+  const p=new URLSearchParams(location.hash.slice(1));
+  history.replaceState(null,'',location.pathname+location.search);       // never leave the token in the address bar
+  const t=p.get('sso');
+  try{
+    const claims=JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    if(!claims.exp||claims.exp*1000<Date.now())return false;
+    setSession(t,{username:claims.sub||p.get('u'),role:claims.role||p.get('r')});return true;
+  }catch{return false}
+}
+
+/* ---------- Service status ---------- */
+async function pingOne(k){
+  try{const r=await fetch((k===ME?API:baseOf(k))+'/');if(!r.ok)throw 0;return true}catch{return false}
+}
+async function pingAll(){
+  for(const k of ['police','judiciary','correctional']){
+    const ok=await pingOne(k);const d=$('#dot-'+k);if(d)d.className='dot '+(ok?'on':'off');
+    if(k===ME){$('#dot').className='dot '+(ok?'on':'off');$('#svcStatus').textContent=ok?'Service online':'Service unreachable'}
+  }
+}
+setInterval(pingAll,15000);
+
+/* ---------- Audit (admin) ---------- */
+function auditView(icons,what){
+  $('#main').innerHTML=head('Activity History',`Every action recorded in the ${what} database, newest first.`)+`<div class="card" id="al">Loading…</div>`;
+  api('/audit-logs?limit=200').then(logs=>{
+    $('#al').innerHTML=logs.length?`<ul class="timeline">`+logs.map(l=>{const [i,t]=icons[l.action]||['📝',l.action.replace(/_/g,' ').toLowerCase()];
+      return `<li><div class="tl-ic">${i}</div><div><b>${esc(t)}</b> · ${esc(l.record_id||'')}<div class="mut">${esc(l.username)} (${esc(roleName(l.role))}) · ${fmtDate(utc(l.time||l.timestamp))}</div></div></li>`}).join('')+`</ul>`:
+      emptyBox('🧾','No activity recorded yet.');
+  }).catch(e=>{$('#al').innerHTML=emptyBox('🚫','Could not load history: '+esc(e.message))});
+}
+
+/* ---------- Boot: restore the session after a refresh or a console switch ---------- */
+function boot(){
+  if(takeSso())return start();
+  try{const s=JSON.parse(sessionStorage.getItem(SKEY)||'null');if(s?.TOKEN){TOKEN=s.TOKEN;USER=s.USER;return start()}}catch{}
+  pingAll();
+}
+
+/* ===================== Police Console (Police, port 8001) ===================== */
+let SUSPECTS=[], ARRESTS=[], CASES=[], filter={q:'',s:''};
+const STATUS=POLICE;
+const canAct=()=>USER&&['police_officer','admin'].includes(USER.role);
+const byId=id=>CASES.find(c=>c.case_id===id);
+const suspectOf=id=>SUSPECTS.find(s=>s.suspect_id===id);
+const arrestOf=id=>ARRESTS.find(a=>a.arrest_id===id);
+const caseOfArrest=id=>CASES.find(c=>c.arrest_id===id);
+
+function navItems(){
+  const items=[['Overview'],['dashboard','🏠','Dashboard'],['Records'],['cases','📂','All Police Cases'],['suspects','🧑','Suspects'],['arrests','🚨','Arrests']];
+  if(canAct())items.push(['Actions'],['book','➕','Process a New Arrest'],['refer','📤','Refer a Case to Court']);
+  items.push(['Follow Up'],['track','🧭','Track a Case']);
+  if(USER.role==='admin')items.push(['Admin'],['audit','🧾','Activity History']);
+  return items;
+}
+async function loadFor(v){
+  if(v==='audit')return;
+  [SUSPECTS,ARRESTS,CASES]=await Promise.all([api('/suspects'),api('/arrests'),api('/cases')]);
+}
+
+/* ---------- Dashboard ---------- */
+function dashboard(){
+  const n=s=>CASES.filter(c=>c.status===s).length;
+  const custody=CASES.filter(c=>c.inmate_id&&['ON_REMAND','SENTENCED'].includes(c.court_status)).length;
+  const stats=[['Suspects on Record',SUSPECTS.length,'🧑','var(--brand)'],['Arrests',ARRESTS.length,'🚨','var(--info)'],['Open Investigations',n('OPEN'),'🔎','var(--info)'],
+    ['Referred to Court',n('REFERRED'),'📤','var(--brand)'],['In Custody',custody,'🔒','var(--muted)'],['Cases Closed',n('CLOSED'),'✅','var(--ok)']];
+  const recent=CASES.slice(0,5);
+  const qa=canAct()?`<h2>What would you like to do?</h2><div class="qa">
+    <button onclick="go('book')"><span class="ic">🚨</span><b>Process a New Arrest</b><span class="d">Suspect, arrest, case and charges in one go</span></button>
+    <button onclick="go('suspects')"><span class="ic">🧑</span><b>Arrest a Known Suspect</b><span class="d">Record a new arrest for someone on file</span></button>
+    <button onclick="go('refer')"><span class="ic">📤</span><b>Refer to Court</b><span class="d">Send a charged case to the Judiciary</span></button>
+    <button onclick="go('track')"><span class="ic">🧭</span><b>Track a Case</b><span class="d">See court and custody progress live</span></button></div>`:'';
+  $('#main').innerHTML=head('Welcome, '+esc(USER.username),'Here is what is happening across police cases.',
+    canAct()?`<button class="btn primary" onclick="go('book')">➕ Process a New Arrest</button>`:'')+flowStrip()+
+  `<div class="grid">${stats.map(s=>`<div class="card stat"><div class="l">${s[2]} ${s[0]}</div><div class="n">${s[1]}</div><div class="bar" style="background:${s[3]};opacity:.7"></div></div>`).join('')}</div>${qa}
+  <h2>Most Recent Cases</h2><div class="card tbl">${caseTable(recent)}</div>`;
+}
+
+/* ---------- Cases ---------- */
+function caseActions(c){
+  return `<div class="acts">
+    <button class="btn sm" onclick="openCaseFile('${esc(c.case_id)}')">📄 View Case File</button>
+    ${canAct()&&c.status==='OPEN'?`<button class="btn sm" onclick="openCharge('${esc(c.case_id)}')">➕ Add Charge</button>`:''}
+    ${canAct()&&c.status==='OPEN'&&c.charges.length?`<button class="btn sm primary" onclick="openRefer('${esc(c.case_id)}')">📤 Refer to Court</button>`:''}
+    ${c.court_case_id?`<button class="btn sm" onclick="openTrack('${esc(c.case_id)}')">🧭 Track</button>`:''}
+  </div>`;
+}
+function caseTable(list){
+  if(!list.length)return emptyBox('📂','No cases to show yet.');
+  return `<table><thead><tr><th>Case</th><th>Suspect</th><th>Charges</th><th>Police Status</th><th>Court</th><th>Actions</th></tr></thead><tbody>`+
+  list.map(c=>`<tr>
+    <td><div class="name">${esc(c.case_id)}</div><div class="mut">Arrest ${esc(c.arrest_id)}</div></td>
+    <td class="name">${esc(c.suspect_name||c.suspect_id)}<div class="mut">ID ${esc(c.national_id||'—')}</div></td>
+    <td style="max-width:200px">${c.charges.length?esc(c.charges.map(x=>x.offence).join(', ')):'<span class="mut">No charges yet</span>'}</td>
+    <td>${badge(c.status,STATUS)}</td>
+    <td>${c.court_case_id?`<div class="name">${esc(c.court_case_id)}</div>${c.court_status?badge(c.court_status,COURT):''}`:'<span class="mut">Not referred</span>'}${c.inmate_id?`<div class="mut">Inmate ${esc(c.inmate_id)}</div>`:''}</td>
+    <td>${caseActions(c)}</td></tr>`).join('')+`</tbody></table>`;
+}
+function cases(){
+  $('#main').innerHTML=head('All Police Cases','Search, filter and act on every case the police have opened.',
+    canAct()?`<button class="btn primary" onclick="go('book')">➕ Process a New Arrest</button>`:'')+
+  `<div class="toolbar"><input id="q" placeholder="🔍 Search by name, ID, case number or charge…" value="${esc(filter.q)}">
+   <select id="fs"><option value="">All statuses</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${filter.s===k?'selected':''}>${v}</option>`).join('')}</select></div>
+   <div class="card tbl" id="tbl"></div>`;
+  const draw=()=>{
+    filter.q=$('#q').value;filter.s=$('#fs').value;const q=filter.q.toLowerCase();
+    $('#tbl').innerHTML=caseTable(CASES.filter(c=>(!filter.s||c.status===filter.s)&&(!q||[c.case_id,c.court_case_id,c.suspect_name,c.national_id,c.inmate_id,...c.charges.map(x=>x.offence)].join(' ').toLowerCase().includes(q))));
+  };
+  $('#q').oninput=draw;$('#fs').onchange=draw;draw();
+}
+
+/* ---------- Suspects & arrests ---------- */
+function suspects(){
+  $('#main').innerHTML=head('Suspects','Everyone registered by the police. One record per national ID, shared by all three services.',
+    canAct()?`<button class="btn primary" onclick="go('book')">➕ Process a New Arrest</button>`:'')+
+  `<div class="toolbar"><input id="q" placeholder="🔍 Search by name or national ID…"></div><div class="card tbl" id="tbl"></div>`;
+  const draw=()=>{const q=$('#q').value.toLowerCase();const list=SUSPECTS.filter(s=>!q||[s.suspect_id,s.full_name,s.national_id,s.address].join(' ').toLowerCase().includes(q));
+    $('#tbl').innerHTML=list.length?`<table><thead><tr><th>Suspect</th><th>National ID</th><th>Born</th><th>Address</th><th>Cases</th><th>Actions</th></tr></thead><tbody>`+
+    list.map(s=>{const cs=CASES.filter(c=>c.suspect_id===s.suspect_id);return `<tr><td><div class="name">${esc(s.full_name)}</div><div class="mut">${esc(s.suspect_id)}</div></td>
+      <td>${esc(s.national_id)}</td><td>${fmtDay(s.date_of_birth)}</td><td>${esc(s.address)}</td>
+      <td>${cs.length?cs.map(c=>`<div>${esc(c.case_id)} ${badge(c.status,STATUS)}</div>`).join(''):'<span class="mut">None</span>'}</td>
+      <td>${canAct()?`<button class="btn sm" onclick="openArrest('${esc(s.suspect_id)}')">🚨 Record Arrest</button>`:''}</td></tr>`}).join('')+`</tbody></table>`:emptyBox('🧑','No suspects match.')};
+  $('#q').oninput=draw;draw();
+}
+function arrests(){
+  $('#main').innerHTML=head('Arrests','Every arrest on record. An arrest becomes a case once charges are prepared.')+
+  `<div class="card tbl">${ARRESTS.length?`<table><thead><tr><th>Arrest</th><th>Suspect</th><th>When &amp; Where</th><th>Officer</th><th>Case</th><th></th></tr></thead><tbody>`+
+   ARRESTS.map(a=>{const s=suspectOf(a.suspect_id),c=caseOfArrest(a.arrest_id);return `<tr><td class="name">${esc(a.arrest_id)}</td>
+   <td>${esc(s?s.full_name:a.suspect_id)}</td><td>${fmtDate(a.arrest_date)}<div class="mut">${esc(a.location)}</div></td><td>${esc(a.arresting_officer)}</td>
+   <td>${c?`${esc(c.case_id)} ${badge(c.status,STATUS)}`:'<span class="mut">No case yet</span>'}</td>
+   <td style="text-align:right">${!c&&canAct()?`<button class="btn sm primary" onclick="openNewCase('${esc(a.arrest_id)}')">📂 Open Case</button>`:''}</td></tr>`}).join('')+`</tbody></table>`:emptyBox('🚨','No arrests recorded yet.')}</div>`;
+}
+
+/* ---------- Process a new arrest (suspect -> arrest -> case -> charges [-> refer]) ---------- */
+function chargeRow(){return `<div class="charge-row"><input class="co" placeholder="Offence (e.g. Theft)"><input class="cs" placeholder="Statute (e.g. Theft Act s.4)"><button class="btn sm" type="button" onclick="this.parentElement.remove()">✖</button></div>`}
+const nowLocal=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)};
+function book(){
+  $('#main').innerHTML=head('Process a New Arrest','Register the suspect, record the arrest, open the case and lay the charges in one step.')+
+  `<div class="card form-card">
+    <div class="steps"><span class="on">1 · Suspect</span><span class="on">2 · Arrest</span><span class="on">3 · Charges</span><span>4 · Court (optional)</span></div>
+    <h3>🧑 Suspect</h3>
+    <div class="seg" style="margin-top:10px"><label><input type="radio" name="sk" value="new" checked> New suspect</label><label><input type="radio" name="sk" value="old" ${SUSPECTS.length?'':'disabled'}> Already on record</label></div>
+    <div id="sNew"><div class="row2"><div><label>Full name</label><input id="fn" placeholder="e.g. Sibusiso Dlamini"></div><div><label>National ID</label><input id="ni" placeholder="13 digits"></div></div>
+      <div class="row2"><div><label>Date of birth</label><input id="dob" type="date"></div><div><label>Gender</label><select id="gd"><option value="">Not stated</option><option>male</option><option>female</option><option>other</option></select></div></div>
+      <label>Address</label><input id="ad" placeholder="Where the suspect lives"></div>
+    <div id="sOld" class="hidden"><label>Suspect</label><select id="sid">${SUSPECTS.map(s=>`<option value="${esc(s.suspect_id)}">${esc(s.full_name)} · ${esc(s.national_id)}</option>`).join('')}</select></div>
+    <h3>🚨 Arrest</h3>
+    <div class="row2"><div><label>Date &amp; time of arrest</label><input id="adt" type="datetime-local" value="${nowLocal()}"></div><div><label>Location</label><input id="loc" placeholder="e.g. Manzini Central"></div></div>
+    <label>Arresting officer</label><input id="ao" placeholder="Leave blank to use ${esc(USER.username)}">
+    <h3>📂 Case &amp; charges</h3>
+    <label>Case summary</label><textarea id="sm" rows="2" placeholder="Short description of what happened"></textarea>
+    <label>Charges</label><div id="charges">${chargeRow()}</div>
+    <button class="btn sm" type="button" onclick="document.getElementById('charges').insertAdjacentHTML('beforeend',chargeRow())">➕ Add Another Charge</button>
+    <label style="display:flex;gap:10px;align-items:center;font-weight:500;margin-top:18px"><input type="checkbox" id="rf" style="width:auto"> Refer the case to court straight away (sends it to the Judiciary service)</label>
+    <div style="margin-top:22px;display:flex;gap:10px"><button class="btn primary" id="sv">💾 Save</button><button class="btn" onclick="go('cases')">Cancel</button></div>
+  </div>`;
+  document.querySelectorAll('[name=sk]').forEach(r=>r.onchange=()=>{const old=document.querySelector('[name=sk]:checked').value==='old';$('#sNew').classList.toggle('hidden',old);$('#sOld').classList.toggle('hidden',!old)});
+  $('#sv').onclick=async()=>{
+    const old=document.querySelector('[name=sk]:checked').value==='old';
+    const sus={full_name:$('#fn').value.trim(),national_id:$('#ni').value.trim(),date_of_birth:$('#dob').value,gender:$('#gd').value||null,address:$('#ad').value.trim()};
+    const ch=[...document.querySelectorAll('.charge-row')].map(r=>({offence:r.querySelector('.co').value.trim(),statute:r.querySelector('.cs').value.trim()||null})).filter(c=>c.offence);
+    if(!old&&(!sus.full_name||!sus.national_id||!sus.date_of_birth||!sus.address))return toast('Fill in the suspect’s name, national ID, date of birth and address.','err');
+    if(!$('#adt').value||!$('#loc').value.trim())return toast('Enter when and where the arrest happened.','err');
+    if(!ch.length)return toast('Add at least one charge.','err');
+    $('#sv').disabled=true;let step='registering the suspect';
+    try{
+      const suspect_id=old?$('#sid').value:(await api('/suspects','POST',sus)).suspect_id;
+      step='recording the arrest';
+      const arr=await api('/arrests','POST',{suspect_id,arrest_date:$('#adt').value,location:$('#loc').value.trim(),arresting_officer:$('#ao').value.trim()||null});
+      step='opening the case';
+      const cs=await api('/cases','POST',{arrest_id:arr.arrest_id,summary:$('#sm').value.trim()||null});
+      step='adding the charges';
+      for(const c of ch)await api(`/cases/${cs.case_id}/charges`,'POST',c);
+      let msg=`Case ${cs.case_id} opened with ${ch.length} charge${ch.length>1?'s':''}.`;
+      if($('#rf').checked){step='referring the case to court';const r=await api(`/cases/${cs.case_id}/refer`,'POST');msg+=` Referred to court as ${r.court_case_id}.`}
+      toast(msg,'ok');go('cases');
+    }catch(e){toast(`Stopped while ${step}: ${e.message}`,'err');$('#sv').disabled=false;if(step!=='registering the suspect')loadFor('cases').catch(()=>{})}
+  };
+}
+
+/* ---------- Pickers ---------- */
+function referPicker(){
+  const ready=CASES.filter(c=>c.status==='OPEN'&&c.charges.length),noCharge=CASES.filter(c=>c.status==='OPEN'&&!c.charges.length);
+  $('#main').innerHTML=head('Refer a Case to Court','Choose a charged case. The Judiciary service receives it immediately and returns a court case number.')+
+  `<div class="card tbl">${ready.length?`<table><thead><tr><th>Case</th><th>Suspect</th><th>Charges</th><th></th></tr></thead><tbody>`+
+   ready.map(c=>`<tr><td class="name">${esc(c.case_id)}</td><td>${esc(c.suspect_name)}</td><td>${esc(c.charges.map(x=>x.offence).join(', '))}</td>
+   <td style="text-align:right"><button class="btn primary sm" onclick="openRefer('${esc(c.case_id)}')">📤 Refer to Court</button></td></tr>`).join('')+`</tbody></table>`:
+   emptyBox('🎉','No cases are ready to be referred.',noCharge.length?`${noCharge.length} open case${noCharge.length>1?'s need':' needs'} a charge first.`:'')}</div>`;
+}
+function trackPicker(){
+  const list=CASES.filter(c=>c.court_case_id);
+  $('#main').innerHTML=head('Track a Case','Follow a referred case through the court and into custody. Live records come straight from the Judiciary and Correctional services.')+
+  `<div class="card tbl">${list.length?`<table><thead><tr><th>Case</th><th>Suspect</th><th>Court</th><th>Latest news</th><th></th></tr></thead><tbody>`+
+   list.map(c=>`<tr><td class="name">${esc(c.case_id)}<div>${badge(c.status,STATUS)}</div></td><td>${esc(c.suspect_name)}</td>
+   <td>${esc(c.court_case_id)}<div>${c.court_status?badge(c.court_status,COURT):''}</div></td><td style="max-width:260px">${esc(c.court_outcome||'—')}<div class="mut">${c.court_updated_at?'Updated '+fmtDate(utc(c.court_updated_at)):''}</div></td>
+   <td style="text-align:right"><button class="btn primary sm" onclick="openTrack('${esc(c.case_id)}')">🧭 Track</button></td></tr>`).join('')+`</tbody></table>`:
+   emptyBox('🧭','No case has been referred to court yet.')}</div>`;
+}
+
+/* ---------- Modals ---------- */
+const caseBox=c=>`<div class="casebox"><b>${esc(c.case_id)}</b> — ${esc(c.suspect_name)} ${badge(c.status,STATUS)}<div class="mut">${c.charges.length?esc(c.charges.map(x=>x.offence).join(', ')):'No charges yet'}</div></div>`;
+function openCaseFile(id){
+  const c=byId(id),s=suspectOf(c.suspect_id)||{},a=arrestOf(c.arrest_id)||{};
+  openModal(`<h3>📄 Case File ${esc(c.case_id)} ${badge(c.status,STATUS)}</h3>
+  <div class="sect">Suspect</div>${kv([['Full name',esc(s.full_name)],['National ID',esc(s.national_id)],['Date of birth',fmtDay(s.date_of_birth)],['Gender',esc(s.gender||'—')],['Address',esc(s.address)],['Suspect number',esc(c.suspect_id)]])}
+  <div class="sect">Arrest</div>${kv([['Arrest number',esc(c.arrest_id)],['When',fmtDate(a.arrest_date)],['Where',esc(a.location)],['Officer',esc(a.arresting_officer)]])}
+  <div class="sect">Case</div>${kv([['Opened',fmtDate(utc(c.created_at))+' by '+esc(c.created_by)],c.summary&&['Summary',esc(c.summary)],['Court case',esc(c.court_case_id||'Not referred yet')],
+    c.court_status&&['Court status',badge(c.court_status,COURT)],c.court_outcome&&['Latest court news',esc(c.court_outcome)],c.inmate_id&&['Inmate number',esc(c.inmate_id)]])}
+  <div class="sect">Charges</div>${c.charges.length?c.charges.map(x=>`<span class="chip"><b>${esc(x.offence)}</b>${x.statute?' · '+esc(x.statute):''} <span class="mut">${esc(x.charge_id)}</span></span>`).join(''):'<div class="mut">No charges laid yet.</div>'}
+  <div class="foot">${canAct()&&c.status==='OPEN'?`<button class="btn" onclick="openCharge('${esc(id)}')">➕ Add Charge</button>`:''}
+  ${canAct()&&c.status==='OPEN'&&c.charges.length?`<button class="btn primary" onclick="openRefer('${esc(id)}')">📤 Refer to Court</button>`:''}
+  ${c.court_case_id?`<button class="btn primary" onclick="openTrack('${esc(id)}')">🧭 Track in Court &amp; Custody</button>`:''}
+  <button class="btn" onclick="closeModal()">Close</button></div>`,true);
+}
+function openArrest(sid){
+  const s=suspectOf(sid);
+  openModal(`<h3>🚨 Record an Arrest</h3><div class="casebox"><b>${esc(s.full_name)}</b> · ${esc(s.national_id)}<div class="mut">${esc(s.suspect_id)}</div></div>
+   <div class="row2"><div><label>Date &amp; time</label><input id="adt" type="datetime-local" value="${nowLocal()}"></div><div><label>Location</label><input id="loc" placeholder="e.g. Manzini Central"></div></div>
+   <label>Arresting officer</label><input id="ao" placeholder="Leave blank to use ${esc(USER.username)}">
+   <label style="display:flex;gap:10px;align-items:center;font-weight:500"><input type="checkbox" id="oc" checked style="width:auto"> Open a case for this arrest</label>
+   <div class="foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="ok">Record Arrest</button></div>`);
+  $('#ok').onclick=()=>{if(!$('#adt').value||!$('#loc').value.trim())return toast('Enter when and where.','err');
+    const open=$('#oc').checked;
+    submit($('#ok'),async()=>{const a=await api('/arrests','POST',{suspect_id:sid,arrest_date:$('#adt').value,location:$('#loc').value.trim(),arresting_officer:$('#ao').value.trim()||null});
+      if(open){const c=await api('/cases','POST',{arrest_id:a.arrest_id});return {a,c}}return {a}},
+      r=>`Arrest ${r.a.arrest_id} recorded.`+(r.c?` Case ${r.c.case_id} opened; add the charges next.`:''))};
+}
+function openNewCase(aid){
+  const a=arrestOf(aid),s=suspectOf(a.suspect_id);
+  openModal(`<h3>📂 Open a Case</h3><div class="casebox"><b>${esc(a.arrest_id)}</b> — ${esc(s?s.full_name:a.suspect_id)}<div class="mut">${fmtDate(a.arrest_date)} · ${esc(a.location)}</div></div>
+   <label>Case summary</label><textarea id="sm" rows="3" placeholder="Short description of what happened"></textarea>
+   <div class="foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="ok">Open Case</button></div>`);
+  $('#ok').onclick=()=>submit($('#ok'),()=>api('/cases','POST',{arrest_id:aid,summary:$('#sm').value.trim()||null}),r=>`Case ${r.case_id} opened. Add the charges next.`);
+}
+function openCharge(id){
+  const c=byId(id);
+  openModal(`<h3>➕ Add a Charge</h3>${caseBox(c)}
+   <div class="row2"><div><label>Offence</label><input id="of" placeholder="e.g. Theft"></div><div><label>Statute</label><input id="stt" placeholder="e.g. Theft Act section 4"></div></div>
+   <div class="hint">Charges can only be added while the case is open (before it goes to court).</div>
+   <div class="foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="ok">Add Charge</button></div>`);
+  $('#ok').onclick=()=>{const o=$('#of').value.trim();if(o.length<2)return toast('Enter the offence.','err');
+    submit($('#ok'),()=>api(`/cases/${id}/charges`,'POST',{offence:o,statute:$('#stt').value.trim()||null}),r=>`Charge ${r.charge_id} added.`)};
+}
+function openRefer(id){
+  const c=byId(id);
+  openModal(`<h3>📤 Refer to Court</h3>${caseBox(c)}
+   <div class="notice">⚠️ The full case file (suspect, arrest and ${c.charges.length} charge${c.charges.length>1?'s':''}) is sent to the Judiciary service. If the court service cannot be reached nothing changes here and you can try again. After referral no more charges can be added.</div>
+   <div class="foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="ok">Send to Court</button></div>`);
+  $('#ok').onclick=()=>submit($('#ok'),()=>api(`/cases/${id}/refer`,'POST'),r=>`Referred. Court case number ${r.court_case_id}.`);
+}
+
+/* ---------- Track: one case across all three databases ---------- */
+function journeyTimeline(t,arrest){
+  const ev=[],c=t.case,court=t.court_case,inm=t.inmate;
+  if(arrest)ev.push([new Date(arrest.arrest_date),'🚨','Arrested',`${arrest.location} · ${arrest.arresting_officer}`,'Police']);
+  ev.push([new Date(utc(c.created_at)),'📂','Police case opened',c.case_id,'Police']);
+  if(court){
+    ev.push([new Date(utc(court.created_at)),'⚖️','Received by the court',court.court_case_id,'Judiciary']);
+    court.hearings.forEach(h=>ev.push([new Date(h.hearing_date),'📅','Hearing',`${h.court_name}${h.presiding_officer?' · '+h.presiding_officer:''}`,'Judiciary']));
+    court.decisions.forEach(d=>{const x=d.kind==='BAIL'?['🔓','Bail granted',money(d.amount)]:d.kind==='REMAND'?['🔒','Remanded in custody',d.facility]:
+      ['🔨',d.verdict==='GUILTY'?'Found guilty':'Found not guilty',d.verdict==='GUILTY'?({IMPRISONMENT:`${d.sentence_months} months imprisonment`,FINE:'Fine of '+money(d.fine_amount),SUSPENDED:'Suspended sentence'}[d.sentence_type]):'Acquitted'];
+      ev.push([new Date(utc(d.decided_at)),x[0],x[1],x[2]||'','Judiciary'])});
+  }
+  if(inm){
+    ev.push([new Date(utc(inm.admitted_at)),'🏛️','Admitted to custody',`${inm.inmate_id} · ${inm.admission_type==='REMAND'?'on remand':'convicted'}`,'Correctional']);
+    (inm.transfers||[]).forEach(x=>ev.push([new Date(utc(x.transferred_at)),'🚐','Transferred',`${x.from_facility} → ${x.new_facility}`,'Correctional']));
+    (inm.releases||[]).forEach(x=>ev.push([new Date(utc(x.released_at)),'🚪','Released',RELEASE[x.reason]||x.reason,'Correctional']));
+  }
+  return `<ul class="timeline">${ev.sort((a,b)=>a[0]-b[0]).map(e=>`<li><div class="tl-ic">${e[1]}</div><div><b>${esc(e[2])}</b> <span class="mut">· ${e[4]}</span><div>${esc(e[3])}</div><div class="mut">${isNaN(e[0])?'':fmtDate(e[0])}</div></div></li>`).join('')}</ul>`;
+}
+async function openTrack(id){
+  openModal(`<h3>🧭 Tracking ${esc(id)}</h3><div class="mut">Asking the Judiciary and Correctional services…</div>`,true);
+  let t;try{t=await api(`/cases/${id}/tracking`)}catch(e){$('#modal').innerHTML=`<h3>🧭 Tracking ${esc(id)}</h3>${emptyBox('🚫',esc(e.message))}<div class="foot"><button class="btn" onclick="closeModal()">Close</button></div>`;return}
+  const c=t.case,court=t.court_case,i=t.inmate;
+  const fresh=CASES.findIndex(x=>x.case_id===c.case_id);if(fresh>=0)CASES[fresh]=c;      // tracking also refreshed our copy
+  let sentence='';
+  if(i&&i.sentence_months&&i.status!=='RELEASED'){const start=new Date(utc(i.admitted_at)),end=new Date(start);end.setMonth(end.getMonth()+i.sentence_months);
+    const pct=Math.max(0,Math.min(100,(Date.now()-start)/(end-start)*100));sentence=`<div class="mut" style="margin-top:8px">Expected release ${fmtDay(end)}</div><div class="progress"><i style="width:${pct.toFixed(0)}%"></i></div>`}
+  $('#modal').innerHTML=`<h3>🧭 Tracking ${esc(c.case_id)} ${badge(c.status,STATUS)}</h3>
+   <div class="casebox"><b>${esc(c.suspect_name)}</b> · ID ${esc(c.national_id)}<div class="mut">${esc(c.charges.map(x=>x.offence).join(', '))}</div></div>
+   <div class="sect">Where the case is now</div>
+   <div class="journey">
+    <div class="col"><h4>👮 Police</h4>${kv([['Case',esc(c.case_id)],['Status',badge(c.status,STATUS)],['Arrest',esc(c.arrest_id)]])}</div>
+    <div class="col"><h4>⚖️ Court</h4>${court?kv([['Case',esc(court.court_case_id)],['Status',badge(court.status,COURT)],['Hearings',court.hearings.length],
+       court.hearings.length&&['Latest',fmtDate(court.hearings[court.hearings.length-1].hearing_date)]]):`<div class="err">${esc(t.court_error||'Not referred yet')}</div>`}</div>
+    <div class="col"><h4>🏛️ Custody</h4>${i?kv([['Inmate',esc(i.inmate_id)],['Status',badge(i.status,CUSTODY)],['Facility',esc(i.facility)],['Sentence',i.sentence_months?i.sentence_months+' months':'—']])+sentence:
+       `<div class="${t.inmate_error?'err':'mut'}">${esc(t.inmate_error||'Not in custody')}</div>`}</div>
+   </div>
+   ${c.court_outcome?`<div class="notice" style="background:var(--brand-soft);color:var(--brand)">📰 Latest court news: ${esc(c.court_outcome)}</div>`:''}
+   <div class="sect">Full journey</div>${journeyTimeline(t,arrestOf(c.arrest_id))}
+   <div class="foot"><button class="btn" id="rt">🔄 Refresh</button><button class="btn" onclick="closeModal()">Close</button></div>`;
+  $('#rt').onclick=()=>openTrack(id);
+}
+
+const AICON={SUSPECT_CREATED:['🧑','Suspect registered'],ARREST_RECORDED:['🚨','Arrest recorded'],CASE_CREATED:['📂','Case opened'],CHARGE_ADDED:['➕','Charge added'],
+  CASE_REFERRED:['📤','Case referred to court'],COURT_UPDATE_RECEIVED:['📰','Court news received'],CASE_CLOSED:['✅','Case closed after verdict']};
+
+const VIEWS={dashboard,cases,suspects,arrests,book,refer:referPicker,track:trackPicker,audit:()=>auditView(AICON,'police')};
+
+boot();
+</script>
+</body>
+</html>

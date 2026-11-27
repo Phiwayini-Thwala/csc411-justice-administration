@@ -1,0 +1,5 @@
+judiciary.db
+*.db
+__pycache__/
+.env
+.pytest_cache/

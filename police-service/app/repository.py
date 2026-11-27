@@ -1,7 +1,6 @@
 """Repository layer: the only code that reads or writes police.db (design 4.3).
 It never commits; the service layer owns the transaction so that a business
 operation and its audit row succeed or fail together."""
-from datetime import datetime
 from typing import Callable, Optional, TypeVar
 
 from sqlalchemy import func, select, update
@@ -62,6 +61,9 @@ class PoliceRepository:
             select(Suspect).where(Suspect.national_id == national_id)
         ).scalar_one_or_none()
 
+    def list_suspects(self) -> list[Suspect]:
+        return list(self.db.execute(select(Suspect).order_by(Suspect.seq.desc())).scalars())
+
     def add_suspect(self, created_by: str, **fields) -> Suspect:
         return self._insert_with_seq(
             Suspect,
@@ -71,6 +73,9 @@ class PoliceRepository:
     # ----- arrests -----
     def get_arrest(self, arrest_id: str) -> Optional[Arrest]:
         return self.db.get(Arrest, arrest_id)
+
+    def list_arrests(self) -> list[Arrest]:
+        return list(self.db.execute(select(Arrest).order_by(Arrest.seq.desc())).scalars())
 
     def add_arrest(self, created_by: str, **fields) -> Arrest:
         return self._insert_with_seq(
@@ -85,6 +90,17 @@ class PoliceRepository:
     def get_case_by_arrest(self, arrest_id: str) -> Optional[Case]:
         return self.db.execute(
             select(Case).where(Case.arrest_id == arrest_id)
+        ).scalar_one_or_none()
+
+    def list_cases(self, status: Optional[str] = None) -> list[Case]:
+        q = select(Case).order_by(Case.year.desc(), Case.seq.desc())
+        if status:
+            q = q.where(Case.status == status)
+        return list(self.db.execute(q).scalars())
+
+    def get_case_by_court_case(self, court_case_id: str) -> Optional[Case]:
+        return self.db.execute(
+            select(Case).where(Case.court_case_id == court_case_id)
         ).scalar_one_or_none()
 
     def add_case(self, year: int, created_by: str, **fields) -> Case:
