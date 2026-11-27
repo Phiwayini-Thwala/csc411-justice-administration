@@ -994,7 +994,7 @@
                 "exec": [
                   "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"case is REFERRED\", () => pm.expect(pm.response.json().status === \"REFERRED\").to.be.true);",
-                  "pm.test(\"court_case_id returned\", () => pm.expect(pm.response.json().court_case_id).to.be.true);",
+                  "pm.test(\"court_case_id returned\", () => pm.expect(pm.response.json().court_case_id).to.be.a(\"string\").and.not.be.empty);",
                   "pm.collectionVariables.set(\"flow_court_case\", pm.response.json().court_case_id);"
                 ]
               }
@@ -1062,7 +1062,7 @@
                 "exec": [
                   "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"status ON_REMAND\", () => pm.expect(pm.response.json().status === \"ON_REMAND\").to.be.true);",
-                  "pm.test(\"inmate_id stored\", () => pm.expect(pm.response.json().inmate_id).to.be.true);",
+                  "pm.test(\"inmate_id stored\", () => pm.expect(pm.response.json().inmate_id).to.be.a(\"string\").and.not.be.empty);",
                   "pm.collectionVariables.set(\"flow_inmate\", pm.response.json().inmate_id);"
                 ]
               }

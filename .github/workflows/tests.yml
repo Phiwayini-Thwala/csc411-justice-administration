@@ -11,8 +11,8 @@ jobs:
   unit-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Install packages
@@ -31,13 +31,13 @@ jobs:
     needs: unit-tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22"
       - name: Install packages
         run: pip install -r police-service/requirements.txt -r judiciary-service/requirements.txt -r correctional-service/requirements.txt
       - name: Start the three services
@@ -53,7 +53,7 @@ jobs:
       - name: Run the Postman collection
         run: |
           npx --yes newman run tests/postman/CSC411_Justice_Flow.postman_collection.json \
-            -e tests/postman/CSC411_Local.postman_environment.json --reporters cli
+            -e tests/postman/CSC411_Local.postman_environment.json --reporters cli --color on
       - name: Show service logs
         if: always()
         run: tail -n 60 logs/*.log
